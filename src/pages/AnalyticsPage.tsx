@@ -1,0 +1,306 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  BarChart3, 
+  TrendingUp, 
+  PieChart, 
+  Calendar,
+  Filter,
+  Download
+} from 'lucide-react';
+import { BalanceChart } from '../components/analytics/BalanceChart';
+import { CategoryChart } from '../components/analytics/CategoryChart';
+import { PeriodChart } from '../components/analytics/PeriodChart';
+import { useBettingStore } from '../store/bettingStore';
+import { useAuthStore } from '../store/authStore';
+
+export const AnalyticsPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const { bets, categories } = useBettingStore();
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+
+  const userBets = bets.filter(bet => bet.userId === user?.id);
+  const userCategories = categories.filter(cat => cat.userId === user?.id);
+
+  // Filter bets by selected period
+  const filteredBets = userBets.filter(bet => {
+    if (selectedPeriod === 'all') return true;
+    
+    const betDate = new Date(bet.date);
+    const now = new Date();
+    
+    switch (selectedPeriod) {
+      case 'today':
+        return betDate.toDateString() === now.toDateString();
+      case 'week':
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return betDate >= weekAgo;
+      case 'month':
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return betDate >= monthAgo;
+      default:
+        return true;
+    }
+  });
+
+  const totalBets = filteredBets.length;
+  const totalWins = filteredBets.filter(bet => bet.result === 'win').length;
+  const totalLosses = filteredBets.filter(bet => bet.result === 'loss').length;
+  const winRate = totalBets > 0 ? (totalWins / totalBets) * 100 : 0;
+  const totalProfit = filteredBets.reduce((sum, bet) => sum + bet.profit, 0);
+  const totalAmount = filteredBets.reduce((sum, bet) => sum + bet.amount, 0);
+  const roi = totalAmount > 0 ? (totalProfit / totalAmount) * 100 : 0;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  const stats = [
+    {
+      title: 'Total de Apostas',
+      value: totalBets.toString(),
+      change: `${totalWins}W / ${totalLosses}L`,
+      changeType: 'neutral' as const,
+      icon: BarChart3,
+      color: 'primary'
+    },
+    {
+      title: 'Taxa de Vitória',
+      value: `${winRate.toFixed(1)}%`,
+      change: winRate >= 50 ? 'Acima da média' : 'Abaixo da média',
+      changeType: winRate >= 50 ? 'positive' : 'negative',
+      icon: TrendingUp,
+      color: 'secondary'
+    },
+    {
+      title: 'Lucro Total',
+      value: formatCurrency(totalProfit),
+      change: `ROI: ${roi.toFixed(1)}%`,
+      changeType: totalProfit >= 0 ? 'positive' : 'negative',
+      icon: PieChart,
+      color: totalProfit >= 0 ? 'success' : 'error'
+    },
+    {
+      title: 'Volume Apostado',
+      value: formatCurrency(totalAmount),
+      change: `${userCategories.length} categorias`,
+      changeType: 'neutral' as const,
+      icon: Calendar,
+      color: 'accent'
+    },
+  ];
+
+  const periods = [
+    { value: 'all', label: 'Todos' },
+    { value: 'today', label: 'Hoje' },
+    { value: 'week', label: '7 dias' },
+    { value: 'month', label: '30 dias' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Analytics
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Análise detalhada do seu desempenho
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                     focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+          >
+            {periods.map((period) => (
+              <option key={period.value} value={period.value}>
+                {period.label}
+              </option>
+            ))}
+          </select>
+          <button className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  {stat.title}
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {stat.value}
+                </p>
+                <p className={`text-sm mt-1 ${
+                  stat.changeType === 'positive' 
+                    ? 'text-success-600 dark:text-success-400'
+                    : stat.changeType === 'negative'
+                    ? 'text-error-600 dark:text-error-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}>
+                  {stat.change}
+                </p>
+              </div>
+              <div className={`p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20`}>
+                <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Evolução do Saldo
+          </h3>
+          <BalanceChart />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Distribuição por Categoria
+          </h3>
+          <CategoryChart />
+        </motion.div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Performance por Período
+        </h3>
+        <PeriodChart />
+      </motion.div>
+
+      {/* Insights */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Insights
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+            <h4 className="font-medium text-primary-900 dark:text-primary-100 mb-2">
+              Melhor Período
+            </h4>
+            <p className="text-sm text-primary-700 dark:text-primary-300">
+              {(() => {
+                const periods = ['morning', 'afternoon', 'night', 'late-night'];
+                const periodLabels = ['Manhã', 'Tarde', 'Noite', 'Madrugada'];
+                let bestPeriod = '';
+                let bestWinRate = 0;
+                
+                periods.forEach((period, index) => {
+                  const periodBets = filteredBets.filter(bet => bet.period === period);
+                  if (periodBets.length > 0) {
+                    const winRate = (periodBets.filter(bet => bet.result === 'win').length / periodBets.length) * 100;
+                    if (winRate > bestWinRate) {
+                      bestWinRate = winRate;
+                      bestPeriod = periodLabels[index];
+                    }
+                  }
+                });
+                
+                return bestPeriod ? `${bestPeriod} (${bestWinRate.toFixed(1)}%)` : 'N/A';
+              })()}
+            </p>
+          </div>
+
+          <div className="p-4 bg-success-50 dark:bg-success-900/20 rounded-lg">
+            <h4 className="font-medium text-success-900 dark:text-success-100 mb-2">
+              Categoria Mais Lucrativa
+            </h4>
+            <p className="text-sm text-success-700 dark:text-success-300">
+              {(() => {
+                let bestCategory = '';
+                let bestProfit = -Infinity;
+                
+                userCategories.forEach(category => {
+                  const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
+                  const profit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
+                  if (profit > bestProfit) {
+                    bestProfit = profit;
+                    bestCategory = category.name;
+                  }
+                });
+                
+                return bestCategory ? `${bestCategory} (${formatCurrency(bestProfit)})` : 'N/A';
+              })()}
+            </p>
+          </div>
+
+          <div className="p-4 bg-warning-50 dark:bg-warning-900/20 rounded-lg">
+            <h4 className="font-medium text-warning-900 dark:text-warning-100 mb-2">
+              Sequência Atual
+            </h4>
+            <p className="text-sm text-warning-700 dark:text-warning-300">
+              {(() => {
+                const recentBets = filteredBets
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 10);
+                
+                let streak = 0;
+                let streakType = '';
+                
+                for (const bet of recentBets) {
+                  if (streak === 0) {
+                    streak = 1;
+                    streakType = bet.result === 'win' ? 'vitórias' : 'derrotas';
+                  } else if (
+                    (streakType === 'vitórias' && bet.result === 'win') ||
+                    (streakType === 'derrotas' && bet.result === 'loss')
+                  ) {
+                    streak++;
+                  } else {
+                    break;
+                  }
+                }
+                
+                return streak > 0 ? `${streak} ${streakType}` : 'N/A';
+              })()}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
