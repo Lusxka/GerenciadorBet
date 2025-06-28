@@ -16,10 +16,11 @@ import { useAuthStore } from '../store/authStore';
 
 export const AnalyticsPage: React.FC = () => {
   const { user } = useAuthStore();
-  const { bets, categories } = useBettingStore();
+  const { bets, withdrawals, categories } = useBettingStore();
   const [selectedPeriod, setSelectedPeriod] = useState('all');
 
   const userBets = bets.filter(bet => bet.userId === user?.id);
+  const userWithdrawals = withdrawals.filter(w => w.userId === user?.id);
   const userCategories = categories.filter(cat => cat.userId === user?.id);
 
   // Filter bets by selected period
@@ -49,6 +50,7 @@ export const AnalyticsPage: React.FC = () => {
   const winRate = totalBets > 0 ? (totalWins / totalBets) * 100 : 0;
   const totalProfit = filteredBets.reduce((sum, bet) => sum + bet.profit, 0);
   const totalAmount = filteredBets.reduce((sum, bet) => sum + bet.amount, 0);
+  const totalWithdrawals = userWithdrawals.reduce((sum, w) => sum + w.amount, 0);
   const roi = totalAmount > 0 ? (totalProfit / totalAmount) * 100 : 0;
 
   const formatCurrency = (value: number) => {
@@ -84,9 +86,9 @@ export const AnalyticsPage: React.FC = () => {
       color: totalProfit >= 0 ? 'success' : 'error'
     },
     {
-      title: 'Volume Apostado',
-      value: formatCurrency(totalAmount),
-      change: `${userCategories.length} categorias`,
+      title: 'Total Saques',
+      value: formatCurrency(totalWithdrawals),
+      change: `${userWithdrawals.length} saques`,
       changeType: 'neutral' as const,
       icon: Calendar,
       color: 'accent'
@@ -101,13 +103,13 @@ export const AnalyticsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
             Analytics
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
             Análise detalhada do seu desempenho
           </p>
         </div>
@@ -125,7 +127,7 @@ export const AnalyticsPage: React.FC = () => {
               </option>
             ))}
           </select>
-          <button className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+          <button className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm">
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </button>
@@ -133,24 +135,24 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   {stat.title}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
                   {stat.value}
                 </p>
-                <p className={`text-sm mt-1 ${
+                <p className={`text-xs md:text-sm mt-1 truncate ${
                   stat.changeType === 'positive' 
                     ? 'text-success-600 dark:text-success-400'
                     : stat.changeType === 'negative'
@@ -160,8 +162,8 @@ export const AnalyticsPage: React.FC = () => {
                   {stat.change}
                 </p>
               </div>
-              <div className={`p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20`}>
-                <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+              <div className={`p-2 md:p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
+                <stat.icon className={`h-5 w-5 md:h-6 md:w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
               </div>
             </div>
           </motion.div>
@@ -169,14 +171,14 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Evolução do Saldo
           </h3>
           <BalanceChart />
@@ -186,9 +188,9 @@ export const AnalyticsPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Distribuição por Categoria
           </h3>
           <CategoryChart />
@@ -199,9 +201,9 @@ export const AnalyticsPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Performance por Período
         </h3>
         <PeriodChart />
@@ -212,17 +214,17 @@ export const AnalyticsPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Insights
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-            <h4 className="font-medium text-primary-900 dark:text-primary-100 mb-2">
+            <h4 className="text-sm font-medium text-primary-900 dark:text-primary-100 mb-2">
               Melhor Período
             </h4>
-            <p className="text-sm text-primary-700 dark:text-primary-300">
+            <p className="text-xs md:text-sm text-primary-700 dark:text-primary-300">
               {(() => {
                 const periods = ['morning', 'afternoon', 'night', 'late-night'];
                 const periodLabels = ['Manhã', 'Tarde', 'Noite', 'Madrugada'];
@@ -246,10 +248,10 @@ export const AnalyticsPage: React.FC = () => {
           </div>
 
           <div className="p-4 bg-success-50 dark:bg-success-900/20 rounded-lg">
-            <h4 className="font-medium text-success-900 dark:text-success-100 mb-2">
+            <h4 className="text-sm font-medium text-success-900 dark:text-success-100 mb-2">
               Categoria Mais Lucrativa
             </h4>
-            <p className="text-sm text-success-700 dark:text-success-300">
+            <p className="text-xs md:text-sm text-success-700 dark:text-success-300">
               {(() => {
                 let bestCategory = '';
                 let bestProfit = -Infinity;
@@ -269,34 +271,11 @@ export const AnalyticsPage: React.FC = () => {
           </div>
 
           <div className="p-4 bg-warning-50 dark:bg-warning-900/20 rounded-lg">
-            <h4 className="font-medium text-warning-900 dark:text-warning-100 mb-2">
-              Sequência Atual
+            <h4 className="text-sm font-medium text-warning-900 dark:text-warning-100 mb-2">
+              Total Sacado
             </h4>
-            <p className="text-sm text-warning-700 dark:text-warning-300">
-              {(() => {
-                const recentBets = filteredBets
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .slice(0, 10);
-                
-                let streak = 0;
-                let streakType = '';
-                
-                for (const bet of recentBets) {
-                  if (streak === 0) {
-                    streak = 1;
-                    streakType = bet.result === 'win' ? 'vitórias' : 'derrotas';
-                  } else if (
-                    (streakType === 'vitórias' && bet.result === 'win') ||
-                    (streakType === 'derrotas' && bet.result === 'loss')
-                  ) {
-                    streak++;
-                  } else {
-                    break;
-                  }
-                }
-                
-                return streak > 0 ? `${streak} ${streakType}` : 'N/A';
-              })()}
+            <p className="text-xs md:text-sm text-warning-700 dark:text-warning-300">
+              {formatCurrency(totalWithdrawals)} em {userWithdrawals.length} saques
             </p>
           </div>
         </div>

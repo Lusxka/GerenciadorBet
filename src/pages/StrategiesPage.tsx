@@ -59,13 +59,13 @@ export const StrategiesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
             Estratégias
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
             Escolha e simule diferentes estratégias de apostas
           </p>
         </div>
@@ -75,11 +75,11 @@ export const StrategiesPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
       >
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
           <div className="flex items-center space-x-2">
-            <DollarSign className="h-5 w-5 text-primary-600" />
+            <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-primary-600" />
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Valor Inicial para Simulação:
             </label>
@@ -90,7 +90,7 @@ export const StrategiesPage: React.FC = () => {
             onChange={(e) => setInitialValue(Number(e.target.value))}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                      focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-32"
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-full sm:w-32 text-sm"
             min="100"
             step="100"
           />
@@ -105,12 +105,12 @@ export const StrategiesPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-6">
           Escolha sua Estratégia
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {strategies.map((strategy, index) => (
             <motion.div
               key={strategy.id}
@@ -133,7 +133,7 @@ export const StrategiesPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
       >
         <StrategySimulator strategy={selectedStrategy} initialValue={initialValue} />
       </motion.div>
@@ -143,28 +143,28 @@ export const StrategiesPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-6">
           Comparação de Estratégias
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white text-sm">
                   Estratégia
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white text-sm">
                   Meta de Ganho
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white text-sm">
                   Limite de Perda
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white text-sm">
                   Nível de Risco
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white">
+                <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-white text-sm">
                   Recomendado Para
                 </th>
               </tr>
@@ -180,17 +180,17 @@ export const StrategiesPage: React.FC = () => {
                   }`}
                 >
                   <td className="py-3 px-4">
-                    <div className="font-medium text-gray-900 dark:text-white">
+                    <div className="font-medium text-gray-900 dark:text-white text-sm">
                       {strategy.name}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       {strategy.description}
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-success-600 dark:text-success-400 font-medium">
+                  <td className="py-3 px-4 text-success-600 dark:text-success-400 font-medium text-sm">
                     +{strategy.winTarget}%
                   </td>
-                  <td className="py-3 px-4 text-error-600 dark:text-error-400 font-medium">
+                  <td className="py-3 px-4 text-error-600 dark:text-error-400 font-medium text-sm">
                     -{strategy.lossLimit}%
                   </td>
                   <td className="py-3 px-4">
@@ -227,15 +227,15 @@ export const StrategiesPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 rounded-xl border border-primary-200 dark:border-primary-800 p-6"
+        className="bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 rounded-xl border border-primary-200 dark:border-primary-800 p-4 md:p-6"
       >
         <div className="flex items-start space-x-3">
-          <TrendingUp className="h-6 w-6 text-primary-600 dark:text-primary-400 mt-1" />
+          <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-primary-600 dark:text-primary-400 mt-1 flex-shrink-0" />
           <div>
-            <h3 className="text-lg font-semibold text-primary-900 dark:text-primary-100 mb-2">
+            <h3 className="text-base md:text-lg font-semibold text-primary-900 dark:text-primary-100 mb-2">
               Dicas Importantes
             </h3>
-            <ul className="space-y-2 text-sm text-primary-800 dark:text-primary-200">
+            <ul className="space-y-2 text-xs md:text-sm text-primary-800 dark:text-primary-200">
               <li>• <strong>Disciplina:</strong> Sempre respeite os limites de stop loss e stop win</li>
               <li>• <strong>Gestão de Risco:</strong> Nunca aposte mais do que pode perder</li>
               <li>• <strong>Diversificação:</strong> Considere usar diferentes estratégias em momentos diferentes</li>
