@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X, Calendar, DollarSign, Target, Clock, Zap } from 'lucide-react';
+import { Plus, X, Calendar, DollarSign, Target, Clock, Zap, AlertTriangle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,10 +49,21 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
   const result = watch('result');
   const amount = watch('amount');
   const multiplier = watch('multiplier');
+  const mg = watch('mg');
 
   const calculateProfit = () => {
     if (!amount || !multiplier) return 0;
-    return result === 'win' ? amount * multiplier - amount : -amount;
+    
+    if (result === 'win') {
+      return amount * multiplier - amount;
+    } else {
+      // Loss with MG (Martin Gale) logic
+      if (mg) {
+        return -amount * 3; // Triple the loss if MG is selected
+      } else {
+        return -amount;
+      }
+    }
   };
 
   const onSubmit = async (data: BetFormData) => {
@@ -91,8 +102,8 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
         exit={{ opacity: 0, scale: 0.95 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
       >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white">
             Nova Aposta
           </h2>
           <button
@@ -103,7 +114,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 md:p-6 space-y-4 md:space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Data
@@ -115,7 +126,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
                 {...register('date')}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
               />
             </div>
             {errors.date && (
@@ -131,7 +142,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
               {...register('categoryId')}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                        focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             >
               <option value="">Selecione uma categoria</option>
               {userCategories.map((category) => (
@@ -157,7 +168,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
                 {...register('amount', { valueAsNumber: true })}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 placeholder="0.00"
               />
             </div>
@@ -248,7 +259,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
                 {...register('multiplier', { valueAsNumber: true })}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 placeholder="1.00"
               />
             </div>
@@ -257,14 +268,31 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
             )}
           </div>
 
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              {...register('mg')}
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-            />
-            <label className="ml-2 block text-sm text-gray-900 dark:text-white">
-              MG (Martingale)
+          <div>
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                {...register('mg')}
+                className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <div className="flex-1">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  MG (Martin Gale)
+                </span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Se marcado e a aposta for uma derrota, a perda será multiplicada por 3x
+                </p>
+                {mg && result === 'loss' && (
+                  <div className="mt-2 p-2 bg-warning-50 dark:bg-warning-900/20 rounded-lg border border-warning-200 dark:border-warning-800">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle className="h-4 w-4 text-warning-600" />
+                      <span className="text-xs font-medium text-warning-800 dark:text-warning-200">
+                        Atenção: Perda será triplicada (3x)
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </label>
           </div>
 
@@ -286,6 +314,11 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
                   }).format(calculateProfit())}
                 </span>
               </div>
+              {mg && result === 'loss' && (
+                <p className="text-xs text-warning-600 dark:text-warning-400 mt-1">
+                  Incluindo multiplicador MG (3x)
+                </p>
+              )}
             </div>
           )}
 
@@ -293,14 +326,14 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors flex items-center justify-center"
+              className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors flex items-center justify-center text-sm"
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>

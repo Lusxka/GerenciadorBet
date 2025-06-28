@@ -30,6 +30,16 @@ export interface Bet {
   currentBalance: number;
 }
 
+export interface Withdrawal {
+  id: string;
+  userId: string;
+  date: Date;
+  amount: number;
+  description: string;
+  previousBalance: number;
+  currentBalance: number;
+}
+
 export interface Goal {
   id: string;
   userId: string;
@@ -38,6 +48,7 @@ export interface Goal {
   currentValue: number;
   period: string;
   completed: boolean;
+  completedAt?: Date;
 }
 
 export interface Strategy {

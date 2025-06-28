@@ -7,22 +7,31 @@ import { ptBR } from 'date-fns/locale';
 
 export const BalanceChart: React.FC = () => {
   const { user } = useAuthStore();
-  const { bets, userSettings } = useBettingStore();
+  const { bets, withdrawals, userSettings } = useBettingStore();
 
   const userBets = bets
     .filter(bet => bet.userId === user?.id)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .map(bet => ({ ...bet, type: 'bet' as const, date: new Date(bet.date) }));
+  
+  const userWithdrawals = withdrawals
+    .filter(w => w.userId === user?.id)
+    .map(w => ({ ...w, type: 'withdrawal' as const, date: new Date(w.date), profit: -w.amount }));
+
+  const allTransactions = [...userBets, ...userWithdrawals]
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const chartData = [
     {
       date: 'Inicial',
       balance: userSettings?.initialBalance || 0,
       profit: 0,
+      type: 'initial',
     },
-    ...userBets.map(bet => ({
-      date: format(new Date(bet.date), 'dd/MM', { locale: ptBR }),
-      balance: bet.currentBalance,
-      profit: bet.profit,
+    ...allTransactions.map(transaction => ({
+      date: format(transaction.date, 'dd/MM', { locale: ptBR }),
+      balance: transaction.currentBalance,
+      profit: transaction.profit,
+      type: transaction.type,
     }))
   ];
 
@@ -35,6 +44,7 @@ export const BalanceChart: React.FC = () => {
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
       return (
         <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
           <p className="text-sm font-medium text-gray-900 dark:text-white">
@@ -43,13 +53,14 @@ export const BalanceChart: React.FC = () => {
           <p className="text-sm text-primary-600 dark:text-primary-400">
             Saldo: {formatCurrency(payload[0].value)}
           </p>
-          {payload[0].payload.profit !== 0 && (
+          {data.profit !== 0 && (
             <p className={`text-sm ${
-              payload[0].payload.profit >= 0 
+              data.profit >= 0 
                 ? 'text-success-600 dark:text-success-400' 
                 : 'text-error-600 dark:text-error-400'
             }`}>
-              {payload[0].payload.profit >= 0 ? '+' : ''}{formatCurrency(payload[0].payload.profit)}
+              {data.type === 'withdrawal' ? 'Saque: ' : ''}
+              {data.profit >= 0 ? '+' : ''}{formatCurrency(data.profit)}
             </p>
           )}
         </div>

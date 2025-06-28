@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { BettingCategory, Bet, Goal, UserSettings, DayStatus } from '../types';
+import type { BettingCategory, Bet, Goal, UserSettings, DayStatus, Withdrawal } from '../types';
 
 interface BettingState {
   categories: BettingCategory[];
   bets: Bet[];
+  withdrawals: Withdrawal[];
   goals: Goal[];
   userSettings: UserSettings | null;
   dayStatuses: DayStatus[];
@@ -18,6 +19,11 @@ interface BettingState {
   addBet: (bet: Omit<Bet, 'id' | 'profit' | 'currentBalance'>) => void;
   updateBet: (id: string, bet: Partial<Bet>) => void;
   deleteBet: (id: string) => void;
+  
+  // Withdrawals
+  addWithdrawal: (withdrawal: Omit<Withdrawal, 'id' | 'currentBalance'>) => void;
+  updateWithdrawal: (id: string, withdrawal: Partial<Withdrawal>) => void;
+  deleteWithdrawal: (id: string) => void;
   
   // Goals
   addGoal: (goal: Omit<Goal, 'id'>) => void;
@@ -41,6 +47,7 @@ export const useBettingStore = create<BettingState>()(
     (set, get) => ({
       categories: [],
       bets: [],
+      withdrawals: [],
       goals: [],
       userSettings: null,
       dayStatuses: [],
@@ -73,9 +80,18 @@ export const useBettingStore = create<BettingState>()(
         const { userSettings, bets } = get();
         const currentBalance = userSettings?.currentBalance || 0;
         
-        const profit = bet.result === 'win' 
-          ? bet.amount * bet.multiplier - bet.amount
-          : -bet.amount;
+        let profit = 0;
+        if (bet.result === 'win') {
+          profit = bet.amount * bet.multiplier - bet.amount;
+        } else {
+          // Loss logic with MG (Martin Gale)
+          if (bet.mg) {
+            // If MG is selected and it's a loss, multiply the loss by 3
+            profit = -bet.amount * 3;
+          } else {
+            profit = -bet.amount;
+          }
+        }
         
         const newBalance = currentBalance + profit;
         
@@ -118,6 +134,42 @@ export const useBettingStore = create<BettingState>()(
         get().calculateBalance();
       },
 
+      addWithdrawal: (withdrawal) => {
+        const { userSettings } = get();
+        const currentBalance = userSettings?.currentBalance || 0;
+        const newBalance = currentBalance - withdrawal.amount;
+        
+        const newWithdrawal: Withdrawal = {
+          ...withdrawal,
+          id: `withdrawal_${Date.now()}`,
+          previousBalance: currentBalance,
+          currentBalance: newBalance,
+        };
+
+        set((state) => ({
+          withdrawals: [...state.withdrawals, newWithdrawal],
+          userSettings: state.userSettings 
+            ? { ...state.userSettings, currentBalance: newBalance }
+            : null,
+        }));
+      },
+
+      updateWithdrawal: (id, withdrawal) => {
+        set((state) => ({
+          withdrawals: state.withdrawals.map((w) =>
+            w.id === id ? { ...w, ...withdrawal } : w
+          ),
+        }));
+        get().calculateBalance();
+      },
+
+      deleteWithdrawal: (id) => {
+        set((state) => ({
+          withdrawals: state.withdrawals.filter((w) => w.id !== id),
+        }));
+        get().calculateBalance();
+      },
+
       addGoal: (goal) => {
         const newGoal: Goal = {
           ...goal,
@@ -131,7 +183,7 @@ export const useBettingStore = create<BettingState>()(
       updateGoal: (id, goal) => {
         set((state) => ({
           goals: state.goals.map((g) =>
-            g.id === id ? { ...g, ...goal } : g
+            g.id === id ? { ...g, ...goal, completedAt: goal.completed ? new Date() : g.completedAt } : g
           ),
         }));
       },
@@ -187,35 +239,71 @@ export const useBettingStore = create<BettingState>()(
       },
 
       calculateBalance: () => {
-        const { bets, userSettings } = get();
+        const { bets, withdrawals, userSettings } = get();
         if (!userSettings) return;
 
-        const sortedBets = bets
-          .filter(bet => bet.userId === userSettings.userId)
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Combine bets and withdrawals, sort by date
+        const allTransactions = [
+          ...bets.filter(bet => bet.userId === userSettings.userId).map(bet => ({
+            ...bet,
+            type: 'bet' as const,
+            date: new Date(bet.date),
+          })),
+          ...withdrawals.filter(w => w.userId === userSettings.userId).map(w => ({
+            ...w,
+            type: 'withdrawal' as const,
+            date: new Date(w.date),
+            profit: -w.amount,
+          })),
+        ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
         let currentBalance = userSettings.initialBalance;
         
-        const updatedBets = sortedBets.map(bet => {
-          const profit = bet.result === 'win' 
-            ? bet.amount * bet.multiplier - bet.amount
-            : -bet.amount;
-          
+        const updatedBets: Bet[] = [];
+        const updatedWithdrawals: Withdrawal[] = [];
+
+        allTransactions.forEach(transaction => {
           const previousBalance = currentBalance;
-          currentBalance += profit;
           
-          return {
-            ...bet,
-            profit,
-            previousBalance,
-            currentBalance,
-          };
+          if (transaction.type === 'bet') {
+            let profit = 0;
+            if (transaction.result === 'win') {
+              profit = transaction.amount * transaction.multiplier - transaction.amount;
+            } else {
+              if (transaction.mg) {
+                profit = -transaction.amount * 3;
+              } else {
+                profit = -transaction.amount;
+              }
+            }
+            
+            currentBalance += profit;
+            
+            updatedBets.push({
+              ...transaction,
+              profit,
+              previousBalance,
+              currentBalance,
+            } as Bet);
+          } else {
+            currentBalance -= transaction.amount;
+            
+            updatedWithdrawals.push({
+              ...transaction,
+              previousBalance,
+              currentBalance,
+            } as Withdrawal);
+          }
         });
 
         set((state) => ({
           bets: [
             ...state.bets.filter(bet => bet.userId !== userSettings.userId),
             ...updatedBets,
+          ],
+          withdrawals: [
+            ...state.withdrawals.filter(w => w.userId !== userSettings.userId),
+            ...updatedWithdrawals,
           ],
           userSettings: {
             ...userSettings,

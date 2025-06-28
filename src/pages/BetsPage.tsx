@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Gamepad2, Target, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Gamepad2, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { BetForm } from '../components/betting/BetForm';
 import { CategoryForm } from '../components/betting/CategoryForm';
+import { WithdrawalForm } from '../components/betting/WithdrawalForm';
 import { BetsList } from '../components/betting/BetsList';
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
 
 export const BetsPage: React.FC = () => {
   const { user } = useAuthStore();
-  const { categories, bets } = useBettingStore();
+  const { categories, bets, withdrawals } = useBettingStore();
   const [showBetForm, setShowBetForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
 
   const userCategories = categories.filter(cat => cat.userId === user?.id);
   const userBets = bets.filter(bet => bet.userId === user?.id);
+  const userWithdrawals = withdrawals.filter(w => w.userId === user?.id);
 
   const todayBets = userBets.filter(bet => {
     const today = new Date().toDateString();
@@ -27,6 +30,7 @@ export const BetsPage: React.FC = () => {
   const winRate = userBets.length > 0 ? (totalWins / userBets.length) * 100 : 0;
 
   const todayProfit = todayBets.reduce((sum, bet) => sum + bet.profit, 0);
+  const totalWithdrawals = userWithdrawals.reduce((sum, w) => sum + w.amount, 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -60,30 +64,45 @@ export const BetsPage: React.FC = () => {
       icon: todayProfit >= 0 ? TrendingUp : TrendingDown,
       color: todayProfit >= 0 ? 'success' : 'error'
     },
+    {
+      title: 'Total Saques',
+      value: formatCurrency(totalWithdrawals),
+      change: `${userWithdrawals.length} saques`,
+      changeType: 'neutral' as const,
+      icon: Minus,
+      color: 'warning'
+    },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
+      <div className="flex flex-col space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
             Apostas
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
             Gerencie suas apostas e categorias
           </p>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={() => setShowCategoryForm(true)}
-            className="flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
           >
             <Plus className="h-4 w-4 mr-2" />
             Nova Categoria
           </button>
           <button
+            onClick={() => setShowWithdrawalForm(true)}
+            className="flex items-center justify-center px-4 py-2 bg-error-600 hover:bg-error-700 text-white rounded-lg transition-colors text-sm"
+          >
+            <Minus className="h-4 w-4 mr-2" />
+            Novo Saque
+          </button>
+          <button
             onClick={() => setShowBetForm(true)}
-            className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+            className="flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm"
           >
             <Plus className="h-4 w-4 mr-2" />
             Nova Aposta
@@ -92,24 +111,24 @@ export const BetsPage: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   {stat.title}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
                   {stat.value}
                 </p>
-                <p className={`text-sm mt-1 ${
+                <p className={`text-xs md:text-sm mt-1 truncate ${
                   stat.changeType === 'positive' 
                     ? 'text-success-600 dark:text-success-400'
                     : stat.changeType === 'negative'
@@ -119,8 +138,8 @@ export const BetsPage: React.FC = () => {
                   {stat.change}
                 </p>
               </div>
-              <div className={`p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20`}>
-                <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+              <div className={`p-2 md:p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
+                <stat.icon className={`h-5 w-5 md:h-6 md:w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
               </div>
             </div>
           </motion.div>
@@ -133,19 +152,19 @@ export const BetsPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Categorias
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
             {userCategories.map((category) => (
               <div
                 key={category.id}
-                className="flex flex-col items-center p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                className="flex flex-col items-center p-3 md:p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
               >
                 <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center text-xl mb-2"
+                  className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center text-lg md:text-xl mb-2"
                   style={{ 
                     backgroundColor: category.color + '20', 
                     color: category.color 
@@ -153,7 +172,7 @@ export const BetsPage: React.FC = () => {
                 >
                   {category.icon}
                 </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-white text-center">
+                <span className="text-xs md:text-sm font-medium text-gray-900 dark:text-white text-center truncate w-full">
                   {category.name}
                 </span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -177,6 +196,7 @@ export const BetsPage: React.FC = () => {
       {/* Forms */}
       <BetForm isOpen={showBetForm} onClose={() => setShowBetForm(false)} />
       <CategoryForm isOpen={showCategoryForm} onClose={() => setShowCategoryForm(false)} />
+      <WithdrawalForm isOpen={showWithdrawalForm} onClose={() => setShowWithdrawalForm(false)} />
     </div>
   );
 };

@@ -63,16 +63,16 @@ export const Sidebar: React.FC = () => {
       {/* Sidebar */}
       <aside className={`
         fixed md:relative z-50 h-full
-        ${isCollapsed ? '-translate-x-full md:translate-x-0 md:w-16' : 'translate-x-0 w-64'}
+        ${isCollapsed ? '-translate-x-full md:translate-x-0 md:w-20' : 'translate-x-0 w-64'}
         transition-all duration-300 ease-in-out
         bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
       `}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-gray-700 px-4">
             <div className={`flex items-center space-x-2 ${isCollapsed ? 'md:hidden' : ''}`}>
-              <TrendingUp className="h-8 w-8 text-primary-600" />
-              <span className="text-xl font-bold text-gray-900 dark:text-white">
+              <TrendingUp className="h-8 w-8 text-primary-600 flex-shrink-0" />
+              <span className="text-xl font-bold text-gray-900 dark:text-white truncate">
                 BetFinance
               </span>
             </div>
@@ -82,13 +82,13 @@ export const Sidebar: React.FC = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          <nav className="flex-1 px-2 md:px-4 py-6 space-y-1 overflow-y-auto">
             {menuItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center px-3 py-2 rounded-lg transition-colors ${
+                  `flex items-center px-3 py-3 rounded-lg transition-colors group ${
                     isActive
                       ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -96,8 +96,12 @@ export const Sidebar: React.FC = () => {
                 }
                 onClick={() => setIsCollapsed(true)}
               >
-                <item.icon className={`h-5 w-5 ${isCollapsed ? 'md:mx-auto' : 'mr-3'}`} />
-                <span className={`${isCollapsed ? 'md:hidden' : ''} font-medium`}>
+                <item.icon className={`h-6 w-6 flex-shrink-0 ${
+                  isCollapsed ? 'md:mx-auto' : 'mr-3'
+                }`} />
+                <span className={`${
+                  isCollapsed ? 'md:hidden' : ''
+                } font-medium text-sm truncate`}>
                   {item.label}
                 </span>
               </NavLink>
@@ -109,8 +113,8 @@ export const Sidebar: React.FC = () => {
             isCollapsed ? 'md:hidden' : ''
           }`}>
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                <span className="text-primary-600 dark:text-primary-400 font-semibold">
+              <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary-600 dark:text-primary-400 font-semibold text-sm">
                   {user?.name.charAt(0)}
                 </span>
               </div>

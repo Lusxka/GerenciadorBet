@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Target, Calendar, TrendingUp, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Target, Calendar, TrendingUp, CheckCircle, Clock, Filter } from 'lucide-react';
 import { GoalForm } from '../components/goals/GoalForm';
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const GoalsPage: React.FC = () => {
   const { user } = useAuthStore();
   const { goals, bets, updateGoal } = useBettingStore();
   const [showGoalForm, setShowGoalForm] = useState(false);
+  const [dateFilter, setDateFilter] = useState('all');
 
   const userGoals = goals.filter(goal => goal.userId === user?.id);
   const userBets = bets.filter(bet => bet.userId === user?.id);
@@ -88,11 +89,40 @@ export const GoalsPage: React.FC = () => {
     }
   };
 
+  // Filter goals by date
+  const getFilteredGoals = (goalsList: typeof userGoals) => {
+    if (dateFilter === 'all') return goalsList;
+
+    const now = new Date();
+    return goalsList.filter(goal => {
+      if (!goal.completedAt) return false;
+      
+      const completedDate = new Date(goal.completedAt);
+      
+      switch (dateFilter) {
+        case 'today':
+          return completedDate >= startOfDay(now) && completedDate <= endOfDay(now);
+        case 'this-month':
+          return completedDate >= startOfMonth(now) && completedDate <= endOfMonth(now);
+        case 'last-month':
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          return completedDate >= startOfMonth(lastMonth) && completedDate <= endOfMonth(lastMonth);
+        case 'this-year':
+          return completedDate >= startOfYear(now) && completedDate <= endOfYear(now);
+        case 'last-year':
+          const lastYear = new Date(now.getFullYear() - 1, 0, 1);
+          return completedDate >= startOfYear(lastYear) && completedDate <= endOfYear(lastYear);
+        default:
+          return true;
+      }
+    });
+  };
+
   const activeGoals = userGoals.filter(goal => !goal.completed);
-  const completedGoals = userGoals.filter(goal => goal.completed);
+  const completedGoals = getFilteredGoals(userGoals.filter(goal => goal.completed));
 
   const totalGoals = userGoals.length;
-  const completedCount = completedGoals.length;
+  const completedCount = userGoals.filter(goal => goal.completed).length;
   const completionRate = totalGoals > 0 ? (completedCount / totalGoals) * 100 : 0;
 
   const stats = [
@@ -124,20 +154,29 @@ export const GoalsPage: React.FC = () => {
     },
   ];
 
+  const filterOptions = [
+    { value: 'all', label: 'Todas' },
+    { value: 'today', label: 'Hoje' },
+    { value: 'this-month', label: 'Este Mês' },
+    { value: 'last-month', label: 'Mês Passado' },
+    { value: 'this-year', label: 'Este Ano' },
+    { value: 'last-year', label: 'Ano Passado' },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
+      <div className="flex flex-col space-y-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
             Metas
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
             Defina e acompanhe suas metas financeiras
           </p>
         </div>
         <button
           onClick={() => setShowGoalForm(true)}
-          className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+          className="self-start flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm"
         >
           <Plus className="h-4 w-4 mr-2" />
           Nova Meta
@@ -145,24 +184,24 @@ export const GoalsPage: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   {stat.title}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
                   {stat.value}
                 </p>
-                <p className={`text-sm mt-1 ${
+                <p className={`text-xs md:text-sm mt-1 truncate ${
                   stat.changeType === 'positive' 
                     ? 'text-success-600 dark:text-success-400'
                     : stat.changeType === 'negative'
@@ -172,8 +211,8 @@ export const GoalsPage: React.FC = () => {
                   {stat.change}
                 </p>
               </div>
-              <div className={`p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20`}>
-                <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+              <div className={`p-2 md:p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
+                <stat.icon className={`h-5 w-5 md:h-6 md:w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
               </div>
             </div>
           </motion.div>
@@ -186,9 +225,9 @@ export const GoalsPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Metas Ativas
           </h3>
           <div className="space-y-4">
@@ -204,7 +243,7 @@ export const GoalsPage: React.FC = () => {
                   transition={{ delay: index * 0.1 }}
                   className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                 >
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 space-y-2 sm:space-y-0">
                     <div className="flex items-center space-x-3">
                       <div className={`p-2 rounded-lg ${
                         isOverdue 
@@ -212,22 +251,22 @@ export const GoalsPage: React.FC = () => {
                           : 'bg-primary-100 dark:bg-primary-900/20'
                       }`}>
                         {isOverdue ? (
-                          <Clock className="h-5 w-5 text-error-600 dark:text-error-400" />
+                          <Clock className="h-4 w-4 md:h-5 md:w-5 text-error-600 dark:text-error-400" />
                         ) : (
-                          <Target className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                          <Target className="h-4 w-4 md:h-5 md:w-5 text-primary-600 dark:text-primary-400" />
                         )}
                       </div>
                       <div>
-                        <h4 className="font-medium text-gray-900 dark:text-white">
+                        <h4 className="text-sm md:text-base font-medium text-gray-900 dark:text-white">
                           Meta {getGoalTypeLabel(goal.type)}
                         </h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
                           {getGoalPeriodLabel(goal.type, goal.period)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <p className="text-xs md:text-sm font-medium text-gray-900 dark:text-white">
                         {formatCurrency(goal.currentValue)} / {formatCurrency(goal.targetValue)}
                       </p>
                       <p className={`text-xs ${
@@ -268,47 +307,77 @@ export const GoalsPage: React.FC = () => {
       )}
 
       {/* Completed Goals */}
-      {completedGoals.length > 0 && (
+      {userGoals.filter(goal => goal.completed).length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Metas Concluídas
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {completedGoals.map((goal, index) => (
-              <motion.div
-                key={goal.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                className="p-4 bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800 rounded-lg"
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
+              Metas Concluídas
+            </h3>
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg 
+                         focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
               >
-                <div className="flex items-center space-x-3 mb-2">
-                  <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
-                  <div>
-                    <h4 className="font-medium text-success-900 dark:text-success-100">
-                      Meta {getGoalTypeLabel(goal.type)}
-                    </h4>
-                    <p className="text-sm text-success-700 dark:text-success-300">
-                      {getGoalPeriodLabel(goal.type, goal.period)}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-success-900 dark:text-success-100">
-                    {formatCurrency(goal.currentValue)} / {formatCurrency(goal.targetValue)}
-                  </p>
-                  <p className="text-xs text-success-700 dark:text-success-300">
-                    {((goal.currentValue / goal.targetValue) * 100).toFixed(1)}% concluído
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+                {filterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+          
+          {completedGoals.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {completedGoals.map((goal, index) => (
+                <motion.div
+                  key={goal.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="p-4 bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800 rounded-lg"
+                >
+                  <div className="flex items-center space-x-3 mb-2">
+                    <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-success-600 dark:text-success-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm md:text-base font-medium text-success-900 dark:text-success-100 truncate">
+                        Meta {getGoalTypeLabel(goal.type)}
+                      </h4>
+                      <p className="text-xs md:text-sm text-success-700 dark:text-success-300 truncate">
+                        {getGoalPeriodLabel(goal.type, goal.period)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs md:text-sm font-medium text-success-900 dark:text-success-100">
+                      {formatCurrency(goal.currentValue)} / {formatCurrency(goal.targetValue)}
+                    </p>
+                    <p className="text-xs text-success-700 dark:text-success-300">
+                      {((goal.currentValue / goal.targetValue) * 100).toFixed(1)}% concluído
+                    </p>
+                    {goal.completedAt && (
+                      <p className="text-xs text-success-600 dark:text-success-400 mt-1">
+                        Concluída em {format(new Date(goal.completedAt), 'dd/MM/yyyy', { locale: ptBR })}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+              Nenhuma meta concluída no período selecionado
+            </p>
+          )}
         </motion.div>
       )}
 
@@ -318,18 +387,18 @@ export const GoalsPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 md:p-12 text-center"
         >
-          <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          <Target className="h-10 w-10 md:h-12 md:w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-base md:text-lg font-medium text-gray-900 dark:text-white mb-2">
             Nenhuma meta definida
           </h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">
+          <p className="text-sm md:text-base text-gray-500 dark:text-gray-400 mb-6">
             Comece definindo suas primeiras metas financeiras
           </p>
           <button
             onClick={() => setShowGoalForm(true)}
-            className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm"
           >
             <Plus className="h-4 w-4 mr-2" />
             Criar Primeira Meta
