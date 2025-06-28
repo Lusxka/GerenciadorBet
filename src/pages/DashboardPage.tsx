@@ -105,18 +105,18 @@ export const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
+    <div className="space-y-6 px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Dashboard
           </h1>
-          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400">
             Bem-vindo de volta, {user?.name}!
           </p>
         </div>
         <div className="text-right">
-          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {new Date().toLocaleDateString('pt-BR', {
               weekday: 'long',
               year: 'numeric',
@@ -139,16 +139,16 @@ export const DashboardPage: React.FC = () => {
           }`}
         >
           <div className="flex items-center space-x-3">
-            <AlertTriangle className={`h-5 w-5 md:h-6 md:w-6 ${
+            <AlertTriangle className={`h-6 w-6 ${
               stopWin ? 'text-success-600' : 'text-error-600'
             }`} />
             <div>
-              <h3 className={`text-sm md:text-base font-semibold ${
+              <h3 className={`text-base font-semibold ${
                 stopWin ? 'text-success-800 dark:text-success-200' : 'text-error-800 dark:text-error-200'
               }`}>
                 {stopWin ? 'Parabéns! Meta Atingida!' : 'Stop Loss Atingido!'}
               </h3>
-              <p className={`text-xs md:text-sm ${
+              <p className={`text-sm ${
                 stopWin ? 'text-success-600 dark:text-success-400' : 'text-error-600 dark:text-error-400'
               }`}>
                 {stopWin 
@@ -162,24 +162,24 @@ export const DashboardPage: React.FC = () => {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
           >
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   {stat.title}
                 </p>
-                <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
                   {stat.value}
                 </p>
-                <p className={`text-xs md:text-sm mt-1 truncate ${
+                <p className={`text-sm mt-1 truncate ${
                   stat.changeType === 'positive' 
                     ? 'text-success-600 dark:text-success-400'
                     : stat.changeType === 'negative'
@@ -189,8 +189,8 @@ export const DashboardPage: React.FC = () => {
                   {stat.change}
                 </p>
               </div>
-              <div className={`p-2 md:p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
-                <stat.icon className={`h-5 w-5 md:h-6 md:w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+              <div className={`p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
+                <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
               </div>
             </div>
           </motion.div>
@@ -203,21 +203,21 @@ export const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Meta Mensal
             </h3>
-            <Target className="h-4 w-4 md:h-5 md:w-5 text-primary-600" />
+            <Target className="h-5 w-5 text-primary-600" />
           </div>
           
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 Progresso
               </span>
-              <span className="text-xs md:text-sm font-medium text-gray-900 dark:text-white">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
                 {formatCurrency(monthlyGoal.currentValue)} / {formatCurrency(monthlyGoal.targetValue)}
               </span>
             </div>
@@ -243,13 +243,13 @@ export const DashboardPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Atividade Recente
           </h3>
-          <Activity className="h-4 w-4 md:h-5 md:w-5 text-primary-600" />
+          <Activity className="h-5 w-5 text-primary-600" />
         </div>
 
         <div className="space-y-3">
@@ -265,7 +265,7 @@ export const DashboardPage: React.FC = () => {
                     bet.result === 'win' ? 'bg-success-500' : 'bg-error-500'
                   }`} />
                   <div>
-                    <p className="text-xs md:text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       Aposta #{bet.id.slice(-4)}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -277,7 +277,7 @@ export const DashboardPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`text-xs md:text-sm font-medium ${
+                  <p className={`text-sm font-medium ${
                     bet.profit >= 0 
                       ? 'text-success-600 dark:text-success-400' 
                       : 'text-error-600 dark:text-error-400'

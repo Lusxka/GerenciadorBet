@@ -37,15 +37,24 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
 
     const days = periods[selectedPeriod];
     
-    // More realistic win rates based on strategy risk level
-    const winRates = {
-      low: 0.65,      // Conservative: 65% win rate
-      medium: 0.58,   // Balanced/Moderate: 58% win rate  
-      high: 0.52,     // Aggressive: 52% win rate
-      'very-high': 0.48 // Extreme: 48% win rate
+    // Strategy-based daily growth rates (more realistic)
+    const dailyGrowthRates = {
+      low: 0.008,      // Conservative: 0.8% daily average
+      medium: 0.012,   // Balanced: 1.2% daily average  
+      high: 0.018,     // Aggressive: 1.8% daily average
+      'very-high': 0.025 // Extreme: 2.5% daily average
     };
     
-    const dailyWinRate = winRates[strategy.riskLevel];
+    // Win rates based on strategy risk level
+    const winRates = {
+      low: 0.70,      // Conservative: 70% win rate
+      medium: 0.60,   // Balanced: 60% win rate  
+      high: 0.55,     // Aggressive: 55% win rate
+      'very-high': 0.50 // Extreme: 50% win rate
+    };
+    
+    const dailyGrowthRate = dailyGrowthRates[strategy.riskLevel];
+    const winRate = winRates[strategy.riskLevel];
     const data = [];
     
     let currentBalance = initialValue;
@@ -67,31 +76,35 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
         continue;
       }
 
-      // More realistic daily bet amount (1-3% of current balance)
-      const betPercentage = 0.01 + Math.random() * 0.02; // 1-3%
+      // Calculate daily bet amount (1-2% of current balance)
+      const betPercentage = 0.01 + Math.random() * 0.01; // 1-2%
       const dailyBetAmount = currentBalance * betPercentage;
       
-      // Simulate daily result with some volatility
-      const randomFactor = 0.8 + Math.random() * 0.4; // 0.8 to 1.2 multiplier
-      const adjustedWinRate = dailyWinRate * randomFactor;
+      // Determine if it's a win or loss based on strategy win rate
+      const randomFactor = 0.9 + Math.random() * 0.2; // 0.9 to 1.1 multiplier for variance
+      const adjustedWinRate = winRate * randomFactor;
       const isWin = Math.random() < adjustedWinRate;
       
       let dailyChange = 0;
       
       if (isWin) {
-        // Win: gain based on strategy target (but more realistic)
-        const winMultiplier = 1 + (strategy.winTarget / 100) * (0.3 + Math.random() * 0.4); // 30-70% of target
+        // Win: apply strategy's win target percentage
+        const winMultiplier = 1 + (strategy.winTarget / 100) * (0.8 + Math.random() * 0.4); // 80-120% of target
         dailyChange = dailyBetAmount * (winMultiplier - 1);
         totalWins++;
         consecutiveLosses = 0;
       } else {
-        // Loss: lose based on strategy limit (but more realistic)
-        const lossMultiplier = (strategy.lossLimit / 100) * (0.4 + Math.random() * 0.6); // 40-100% of limit
+        // Loss: apply strategy's loss limit percentage
+        const lossMultiplier = (strategy.lossLimit / 100) * (0.6 + Math.random() * 0.8); // 60-140% of limit
         dailyChange = -dailyBetAmount * lossMultiplier;
         totalLosses++;
         consecutiveLosses++;
         maxConsecutiveLosses = Math.max(maxConsecutiveLosses, consecutiveLosses);
       }
+
+      // Apply compound growth based on strategy
+      const compoundGrowth = currentBalance * dailyGrowthRate * (isWin ? 1 : -0.5);
+      dailyChange += compoundGrowth;
 
       currentBalance += dailyChange;
       
@@ -117,7 +130,7 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
 
     const finalProfit = currentBalance - initialValue;
     const roi = initialValue > 0 ? ((currentBalance - initialValue) / initialValue) * 100 : 0;
-    const winRate = totalWins + totalLosses > 0 ? (totalWins / (totalWins + totalLosses)) * 100 : 0;
+    const winRateActual = totalWins + totalLosses > 0 ? (totalWins / (totalWins + totalLosses)) * 100 : 0;
     const maxDrawdown = maxBalance > 0 ? ((maxBalance - minBalance) / maxBalance) * 100 : 0;
 
     return {
@@ -126,7 +139,7 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
         finalBalance: currentBalance,
         finalProfit,
         roi,
-        winRate,
+        winRate: winRateActual,
         totalTrades: totalWins + totalLosses,
         maxBalance,
         minBalance,

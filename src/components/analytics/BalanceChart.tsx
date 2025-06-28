@@ -5,19 +5,33 @@ import { useAuthStore } from '../../store/authStore';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export const BalanceChart: React.FC = () => {
+interface BalanceChartProps {
+  filteredBets?: any[];
+  filteredWithdrawals?: any[];
+}
+
+export const BalanceChart: React.FC<BalanceChartProps> = ({ filteredBets, filteredWithdrawals }) => {
   const { user } = useAuthStore();
   const { bets, withdrawals, userSettings } = useBettingStore();
 
-  const userBets = bets
-    .filter(bet => bet.userId === user?.id)
-    .map(bet => ({ ...bet, type: 'bet' as const, date: new Date(bet.date) }));
-  
-  const userWithdrawals = withdrawals
-    .filter(w => w.userId === user?.id)
-    .map(w => ({ ...w, type: 'withdrawal' as const, date: new Date(w.date), profit: -w.amount }));
+  // Use filtered data if provided, otherwise use all data
+  const userBets = filteredBets || bets.filter(bet => bet.userId === user?.id);
+  const userWithdrawals = filteredWithdrawals || withdrawals.filter(w => w.userId === user?.id);
 
-  const allTransactions = [...userBets, ...userWithdrawals]
+  const betsData = userBets.map(bet => ({ 
+    ...bet, 
+    type: 'bet' as const, 
+    date: new Date(bet.date) 
+  }));
+  
+  const withdrawalsData = userWithdrawals.map(w => ({ 
+    ...w, 
+    type: 'withdrawal' as const, 
+    date: new Date(w.date), 
+    profit: -w.amount 
+  }));
+
+  const allTransactions = [...betsData, ...withdrawalsData]
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const chartData = [
@@ -55,12 +69,14 @@ export const BalanceChart: React.FC = () => {
           </p>
           {data.profit !== 0 && (
             <p className={`text-sm ${
-              data.profit >= 0 
+              data.type === 'withdrawal' 
+                ? 'text-warning-600 dark:text-warning-400'
+                : data.profit >= 0 
                 ? 'text-success-600 dark:text-success-400' 
                 : 'text-error-600 dark:text-error-400'
             }`}>
               {data.type === 'withdrawal' ? 'Saque: ' : ''}
-              {data.profit >= 0 ? '+' : ''}{formatCurrency(data.profit)}
+              {data.profit >= 0 ? '+' : ''}{formatCurrency(Math.abs(data.profit))}
             </p>
           )}
         </div>
@@ -90,7 +106,13 @@ export const BalanceChart: React.FC = () => {
             dataKey="balance" 
             stroke="#3b82f6" 
             strokeWidth={2}
-            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+            dot={(props) => {
+              const { payload } = props;
+              if (payload.type === 'withdrawal') {
+                return <circle {...props} fill="#f59e0b" stroke="#f59e0b" strokeWidth={2} r={4} />;
+              }
+              return <circle {...props} fill="#3b82f6" strokeWidth={2} r={4} />;
+            }}
             activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
           />
         </LineChart>

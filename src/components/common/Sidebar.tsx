@@ -82,7 +82,7 @@ export const Sidebar: React.FC = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-2 md:px-4 py-6 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
             {menuItems.map((item) => (
               <NavLink
                 key={item.path}

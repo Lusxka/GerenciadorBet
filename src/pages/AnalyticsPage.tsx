@@ -23,26 +23,36 @@ export const AnalyticsPage: React.FC = () => {
   const userWithdrawals = withdrawals.filter(w => w.userId === user?.id);
   const userCategories = categories.filter(cat => cat.userId === user?.id);
 
-  // Filter bets by selected period
-  const filteredBets = userBets.filter(bet => {
-    if (selectedPeriod === 'all') return true;
+  // Filter bets and withdrawals by selected period
+  const getFilteredData = () => {
+    if (selectedPeriod === 'all') {
+      return { filteredBets: userBets, filteredWithdrawals: userWithdrawals };
+    }
     
-    const betDate = new Date(bet.date);
     const now = new Date();
+    let startDate: Date;
     
     switch (selectedPeriod) {
       case 'today':
-        return betDate.toDateString() === now.toDateString();
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
       case 'week':
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return betDate >= weekAgo;
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
       case 'month':
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        return betDate >= monthAgo;
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
       default:
-        return true;
+        return { filteredBets: userBets, filteredWithdrawals: userWithdrawals };
     }
-  });
+
+    const filteredBets = userBets.filter(bet => new Date(bet.date) >= startDate);
+    const filteredWithdrawals = userWithdrawals.filter(w => new Date(w.date) >= startDate);
+    
+    return { filteredBets, filteredWithdrawals };
+  };
+
+  const { filteredBets, filteredWithdrawals } = getFilteredData();
 
   const totalBets = filteredBets.length;
   const totalWins = filteredBets.filter(bet => bet.result === 'win').length;
@@ -50,7 +60,7 @@ export const AnalyticsPage: React.FC = () => {
   const winRate = totalBets > 0 ? (totalWins / totalBets) * 100 : 0;
   const totalProfit = filteredBets.reduce((sum, bet) => sum + bet.profit, 0);
   const totalAmount = filteredBets.reduce((sum, bet) => sum + bet.amount, 0);
-  const totalWithdrawals = userWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+  const totalWithdrawals = filteredWithdrawals.reduce((sum, w) => sum + w.amount, 0);
   const roi = totalAmount > 0 ? (totalProfit / totalAmount) * 100 : 0;
 
   const formatCurrency = (value: number) => {
@@ -88,7 +98,7 @@ export const AnalyticsPage: React.FC = () => {
     {
       title: 'Total Saques',
       value: formatCurrency(totalWithdrawals),
-      change: `${userWithdrawals.length} saques`,
+      change: `${filteredWithdrawals.length} saques`,
       changeType: 'neutral' as const,
       icon: Calendar,
       color: 'accent'
@@ -103,13 +113,13 @@ export const AnalyticsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
+    <div className="space-y-6 px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Analytics
           </h1>
-          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400">
             Análise detalhada do seu desempenho
           </p>
         </div>
@@ -135,24 +145,24 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
           >
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   {stat.title}
                 </p>
-                <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
                   {stat.value}
                 </p>
-                <p className={`text-xs md:text-sm mt-1 truncate ${
+                <p className={`text-sm mt-1 truncate ${
                   stat.changeType === 'positive' 
                     ? 'text-success-600 dark:text-success-400'
                     : stat.changeType === 'negative'
@@ -162,8 +172,8 @@ export const AnalyticsPage: React.FC = () => {
                   {stat.change}
                 </p>
               </div>
-              <div className={`p-2 md:p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
-                <stat.icon className={`h-5 w-5 md:h-6 md:w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+              <div className={`p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
+                <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
               </div>
             </div>
           </motion.div>
@@ -171,26 +181,26 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
         >
-          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Evolução do Saldo
           </h3>
-          <BalanceChart />
+          <BalanceChart filteredBets={filteredBets} filteredWithdrawals={filteredWithdrawals} />
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
         >
-          <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Distribuição por Categoria
           </h3>
           <CategoryChart />
@@ -201,9 +211,9 @@ export const AnalyticsPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
-        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Performance por Período
         </h3>
         <PeriodChart />
@@ -214,9 +224,9 @@ export const AnalyticsPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
-        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Insights
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -224,7 +234,7 @@ export const AnalyticsPage: React.FC = () => {
             <h4 className="text-sm font-medium text-primary-900 dark:text-primary-100 mb-2">
               Melhor Período
             </h4>
-            <p className="text-xs md:text-sm text-primary-700 dark:text-primary-300">
+            <p className="text-sm text-primary-700 dark:text-primary-300">
               {(() => {
                 const periods = ['morning', 'afternoon', 'night', 'late-night'];
                 const periodLabels = ['Manhã', 'Tarde', 'Noite', 'Madrugada'];
@@ -251,7 +261,7 @@ export const AnalyticsPage: React.FC = () => {
             <h4 className="text-sm font-medium text-success-900 dark:text-success-100 mb-2">
               Categoria Mais Lucrativa
             </h4>
-            <p className="text-xs md:text-sm text-success-700 dark:text-success-300">
+            <p className="text-sm text-success-700 dark:text-success-300">
               {(() => {
                 let bestCategory = '';
                 let bestProfit = -Infinity;
@@ -274,8 +284,8 @@ export const AnalyticsPage: React.FC = () => {
             <h4 className="text-sm font-medium text-warning-900 dark:text-warning-100 mb-2">
               Total Sacado
             </h4>
-            <p className="text-xs md:text-sm text-warning-700 dark:text-warning-300">
-              {formatCurrency(totalWithdrawals)} em {userWithdrawals.length} saques
+            <p className="text-sm text-warning-700 dark:text-warning-300">
+              {formatCurrency(totalWithdrawals)} em {filteredWithdrawals.length} saques
             </p>
           </div>
         </div>

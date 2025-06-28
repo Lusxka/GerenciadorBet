@@ -110,7 +110,7 @@ export const useBettingStore = create<BettingState>()(
             : null,
         }));
 
-        // Update day status
+        // Update day status based on bet result, not withdrawal
         const dateStr = new Date(bet.date).toISOString().split('T')[0];
         get().updateDayStatus(dateStr, profit > 0 ? 'positive' : 'negative', profit);
         
@@ -152,6 +152,9 @@ export const useBettingStore = create<BettingState>()(
             ? { ...state.userSettings, currentBalance: newBalance }
             : null,
         }));
+
+        // Withdrawals don't affect day status - they are separate from wins/losses
+        // Only update balance, not day status
       },
 
       updateWithdrawal: (id, withdrawal) => {
@@ -253,7 +256,7 @@ export const useBettingStore = create<BettingState>()(
             ...w,
             type: 'withdrawal' as const,
             date: new Date(w.date),
-            profit: -w.amount,
+            profit: -w.amount, // Withdrawals reduce balance but are not losses
           })),
         ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
@@ -286,6 +289,7 @@ export const useBettingStore = create<BettingState>()(
               currentBalance,
             } as Bet);
           } else {
+            // Withdrawal - reduces balance but is not a loss
             currentBalance -= transaction.amount;
             
             updatedWithdrawals.push({
@@ -313,21 +317,26 @@ export const useBettingStore = create<BettingState>()(
       },
 
       checkStopLimits: () => {
-        const { userSettings } = get();
+        const { userSettings, bets } = get();
         if (!userSettings) return { stopLoss: false, stopWin: false };
 
-        const { currentBalance, initialBalance, stopLoss, stopWin } = userSettings;
-        const profit = currentBalance - initialBalance;
+        // Calculate today's profit from bets only (not withdrawals)
+        const today = new Date().toISOString().split('T')[0];
+        const todayBets = bets.filter(bet => 
+          bet.userId === userSettings.userId && 
+          new Date(bet.date).toISOString().split('T')[0] === today
+        );
         
-        const stopLossReached = profit <= -stopLoss;
-        const stopWinReached = profit >= stopWin;
+        const todayProfit = todayBets.reduce((sum, bet) => sum + bet.profit, 0);
+        
+        const stopLossReached = todayProfit <= -userSettings.stopLoss;
+        const stopWinReached = todayProfit >= userSettings.stopWin;
 
         if (stopLossReached || stopWinReached) {
-          const today = new Date().toISOString().split('T')[0];
           get().updateDayStatus(
             today, 
             stopLossReached ? 'stop-loss' : 'stop-win', 
-            profit
+            todayProfit
           );
         }
 
