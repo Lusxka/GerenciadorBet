@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -8,10 +8,12 @@ import {
   DollarSign,
   Trophy,
   Calendar,
-  Activity
+  Activity,
+  Filter
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useBettingStore } from '../store/bettingStore';
+import { BalanceChart } from '../components/analytics/BalanceChart';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -24,6 +26,8 @@ export const DashboardPage: React.FC = () => {
     initializeSettings, 
     checkStopLimits 
   } = useBettingStore();
+
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
 
   useEffect(() => {
     if (user) {
@@ -40,6 +44,38 @@ export const DashboardPage: React.FC = () => {
 
   const userBets = bets.filter(bet => bet.userId === user?.id);
   const userWithdrawals = withdrawals.filter(w => w.userId === user?.id);
+
+  // Filter data by selected period
+  const getFilteredData = () => {
+    if (selectedPeriod === 'all') {
+      return { filteredBets: userBets, filteredWithdrawals: userWithdrawals };
+    }
+    
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (selectedPeriod) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        return { filteredBets: userBets, filteredWithdrawals: userWithdrawals };
+    }
+
+    const filteredBets = userBets.filter(bet => new Date(bet.date) >= startDate);
+    const filteredWithdrawals = userWithdrawals.filter(w => new Date(w.date) >= startDate);
+    
+    return { filteredBets, filteredWithdrawals };
+  };
+
+  const { filteredBets, filteredWithdrawals } = getFilteredData();
+
   const todayBets = userBets.filter(bet => {
     const today = new Date().toDateString();
     const betDate = new Date(bet.date).toDateString();
@@ -50,10 +86,11 @@ export const DashboardPage: React.FC = () => {
   const profitPercentage = userSettings ? ((profit / userSettings.initialBalance) * 100) : 0;
 
   const todayProfit = todayBets.reduce((sum, bet) => sum + bet.profit, 0);
-  const totalWithdrawals = userWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+  const totalWithdrawals = filteredWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+  const filteredProfit = filteredBets.reduce((sum, bet) => sum + bet.profit, 0);
   
-  const winRate = userBets.length > 0 
-    ? (userBets.filter(bet => bet.result === 'win').length / userBets.length) * 100 
+  const winRate = filteredBets.length > 0 
+    ? (filteredBets.filter(bet => bet.result === 'win').length / filteredBets.length) * 100 
     : 0;
 
   const { stopLoss, stopWin } = checkStopLimits();
@@ -63,11 +100,6 @@ export const DashboardPage: React.FC = () => {
     goal.type === 'monthly' && 
     !goal.completed
   );
-
-  const currentStreak = dayStatuses
-    .filter(day => day.status === 'stop-win')
-    .slice(-7)
-    .length;
 
   const stats = [
     {
@@ -79,17 +111,17 @@ export const DashboardPage: React.FC = () => {
       color: 'primary'
     },
     {
-      title: 'Lucro/Prejuízo',
-      value: formatCurrency(profit),
+      title: selectedPeriod === 'all' ? 'Lucro Total' : 'Lucro Período',
+      value: formatCurrency(selectedPeriod === 'all' ? profit : filteredProfit),
       change: formatCurrency(todayProfit),
-      changeType: profit >= 0 ? 'positive' : 'negative',
-      icon: profit >= 0 ? TrendingUp : TrendingDown,
-      color: profit >= 0 ? 'success' : 'error'
+      changeType: (selectedPeriod === 'all' ? profit : filteredProfit) >= 0 ? 'positive' : 'negative',
+      icon: (selectedPeriod === 'all' ? profit : filteredProfit) >= 0 ? TrendingUp : TrendingDown,
+      color: (selectedPeriod === 'all' ? profit : filteredProfit) >= 0 ? 'success' : 'error'
     },
     {
       title: 'Taxa de Vitória',
       value: `${winRate.toFixed(1)}%`,
-      change: `${userBets.length} apostas`,
+      change: `${filteredBets.length} apostas`,
       changeType: 'neutral',
       icon: Trophy,
       color: 'secondary'
@@ -97,16 +129,23 @@ export const DashboardPage: React.FC = () => {
     {
       title: 'Total Saques',
       value: formatCurrency(totalWithdrawals),
-      change: `${userWithdrawals.length} saques`,
+      change: `${filteredWithdrawals.length} saques`,
       changeType: 'neutral',
       icon: Calendar,
       color: 'accent'
     }
   ];
 
+  const periods = [
+    { value: 'all', label: 'Todos' },
+    { value: 'today', label: 'Hoje' },
+    { value: 'week', label: '7 dias' },
+    { value: 'month', label: '30 dias' },
+  ];
+
   return (
     <div className="space-y-6 px-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Dashboard
@@ -115,15 +154,30 @@ export const DashboardPage: React.FC = () => {
             Bem-vindo de volta, {user?.name}!
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {new Date().toLocaleDateString('pt-BR', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                     focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+          >
+            {periods.map((period) => (
+              <option key={period.value} value={period.value}>
+                {period.label}
+              </option>
+            ))}
+          </select>
+          <div className="text-right">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {new Date().toLocaleDateString('pt-BR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -196,6 +250,19 @@ export const DashboardPage: React.FC = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Balance Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Evolução do Saldo
+        </h3>
+        <BalanceChart filteredBets={filteredBets} filteredWithdrawals={filteredWithdrawals} />
+      </motion.div>
 
       {/* Goal Progress */}
       {monthlyGoal && (

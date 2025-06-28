@@ -192,13 +192,13 @@ export const ProgressPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 md:space-y-6 px-4 md:px-0">
+    <div className="space-y-6 px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Progresso
           </h1>
-          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400">
             Acompanhe seu progresso diário e mensal
           </p>
         </div>
@@ -209,7 +209,7 @@ export const ProgressPage: React.FC = () => {
           >
             ←
           </button>
-          <span className="text-base md:text-lg font-medium text-gray-900 dark:text-white min-w-[120px] text-center">
+          <span className="text-lg font-medium text-gray-900 dark:text-white min-w-[120px] text-center">
             {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
           </span>
           <button
@@ -222,24 +222,24 @@ export const ProgressPage: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
           >
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                   {stat.title}
                 </p>
-                <p className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1 truncate">
                   {stat.value}
                 </p>
-                <p className={`text-xs md:text-sm mt-1 truncate ${
+                <p className={`text-sm mt-1 truncate ${
                   stat.changeType === 'positive' 
                     ? 'text-success-600 dark:text-success-400'
                     : stat.changeType === 'negative'
@@ -249,8 +249,8 @@ export const ProgressPage: React.FC = () => {
                   {stat.change}
                 </p>
               </div>
-              <div className={`p-2 md:p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
-                <stat.icon className={`h-5 w-5 md:h-6 md:w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+              <div className={`p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20 flex-shrink-0`}>
+                <stat.icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
               </div>
             </div>
           </motion.div>
@@ -262,23 +262,23 @@ export const ProgressPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
-        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
           Calendário de Progresso
         </h3>
 
         {/* Calendar Header */}
-        <div className="grid grid-cols-7 gap-1 md:gap-2 mb-4">
+        <div className="grid grid-cols-7 gap-2 mb-4">
           {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
-            <div key={day} className="text-center text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400 py-2">
+            <div key={day} className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 py-2">
               {day}
             </div>
           ))}
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1 md:gap-2">
+        <div className="grid grid-cols-7 gap-2">
           {/* Empty cells for days before month start */}
           {Array.from({ length: monthStart.getDay() }).map((_, index) => (
             <div key={`empty-${index}`} className="aspect-square" />
@@ -317,25 +317,25 @@ export const ProgressPage: React.FC = () => {
         </div>
 
         {/* Legend */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 md:gap-4 text-xs md:text-sm">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 md:w-4 md:h-4 bg-success-500 rounded"></div>
+            <div className="w-4 h-4 bg-success-500 rounded"></div>
             <span className="text-gray-600 dark:text-gray-400">Dia Positivo</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 md:w-4 md:h-4 bg-error-500 rounded"></div>
+            <div className="w-4 h-4 bg-error-500 rounded"></div>
             <span className="text-gray-600 dark:text-gray-400">Dia Negativo</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 md:w-4 md:h-4 bg-success-600 rounded ring-2 ring-success-300"></div>
+            <div className="w-4 h-4 bg-success-600 rounded ring-2 ring-success-300"></div>
             <span className="text-gray-600 dark:text-gray-400">Stop Win</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 md:w-4 md:h-4 bg-error-600 rounded ring-2 ring-error-300"></div>
+            <div className="w-4 h-4 bg-error-600 rounded ring-2 ring-error-300"></div>
             <span className="text-gray-600 dark:text-gray-400">Stop Loss</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 md:w-4 md:h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
             <span className="text-gray-600 dark:text-gray-400">Sem Atividade</span>
           </div>
         </div>
@@ -346,18 +346,18 @@ export const ProgressPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
-        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Resumo do Mês
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="text-center">
-            <div className="text-2xl md:text-3xl font-bold text-success-600 dark:text-success-400 mb-2">
+            <div className="text-3xl font-bold text-success-600 dark:text-success-400 mb-2">
               {positiveDays}
             </div>
-            <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               Dias Positivos
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
@@ -366,10 +366,10 @@ export const ProgressPage: React.FC = () => {
           </div>
           
           <div className="text-center">
-            <div className="text-2xl md:text-3xl font-bold text-error-600 dark:text-error-400 mb-2">
+            <div className="text-3xl font-bold text-error-600 dark:text-error-400 mb-2">
               {negativeDays}
             </div>
-            <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               Dias Negativos
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
@@ -378,10 +378,10 @@ export const ProgressPage: React.FC = () => {
           </div>
           
           <div className="text-center">
-            <div className="text-2xl md:text-3xl font-bold text-gray-600 dark:text-gray-400 mb-2">
+            <div className="text-3xl font-bold text-gray-600 dark:text-gray-400 mb-2">
               {neutralDays}
             </div>
-            <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               Dias Neutros
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
@@ -390,10 +390,10 @@ export const ProgressPage: React.FC = () => {
           </div>
 
           <div className="text-center">
-            <div className="text-2xl md:text-3xl font-bold text-warning-600 dark:text-warning-400 mb-2">
+            <div className="text-3xl font-bold text-warning-600 dark:text-warning-400 mb-2">
               {formatCurrency(monthlyWithdrawalsTotal)}
             </div>
-            <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               Total Sacado
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">

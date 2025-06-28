@@ -77,7 +77,7 @@ export const useBettingStore = create<BettingState>()(
       },
 
       addBet: (bet) => {
-        const { userSettings, bets } = get();
+        const { userSettings } = get();
         const currentBalance = userSettings?.currentBalance || 0;
         
         let profit = 0;
@@ -110,7 +110,7 @@ export const useBettingStore = create<BettingState>()(
             : null,
         }));
 
-        // Update day status based on bet result, not withdrawal
+        // Update day status based on bet result only (not withdrawals)
         const dateStr = new Date(bet.date).toISOString().split('T')[0];
         get().updateDayStatus(dateStr, profit > 0 ? 'positive' : 'negative', profit);
         

@@ -37,24 +37,15 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
 
     const days = periods[selectedPeriod];
     
-    // Strategy-based daily growth rates (more realistic)
+    // Strategy-based compound daily growth rates
     const dailyGrowthRates = {
-      low: 0.008,      // Conservative: 0.8% daily average
-      medium: 0.012,   // Balanced: 1.2% daily average  
-      high: 0.018,     // Aggressive: 1.8% daily average
-      'very-high': 0.025 // Extreme: 2.5% daily average
+      low: 0.005,      // Conservative: 0.5% daily compound
+      medium: 0.008,   // Balanced: 0.8% daily compound
+      high: 0.012,     // Aggressive: 1.2% daily compound
+      'very-high': 0.018 // Extreme: 1.8% daily compound
     };
     
-    // Win rates based on strategy risk level
-    const winRates = {
-      low: 0.70,      // Conservative: 70% win rate
-      medium: 0.60,   // Balanced: 60% win rate  
-      high: 0.55,     // Aggressive: 55% win rate
-      'very-high': 0.50 // Extreme: 50% win rate
-    };
-    
-    const dailyGrowthRate = dailyGrowthRates[strategy.riskLevel];
-    const winRate = winRates[strategy.riskLevel];
+    const baseGrowthRate = dailyGrowthRates[strategy.riskLevel];
     const data = [];
     
     let currentBalance = initialValue;
@@ -76,34 +67,39 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
         continue;
       }
 
-      // Calculate daily bet amount (1-2% of current balance)
-      const betPercentage = 0.01 + Math.random() * 0.01; // 1-2%
-      const dailyBetAmount = currentBalance * betPercentage;
+      // Apply strategy percentage to initial value, compounded daily
+      const targetGrowth = (strategy.winTarget / 100) / days; // Daily target based on strategy
+      const riskFactor = (strategy.lossLimit / 100) / days; // Daily risk based on strategy
       
-      // Determine if it's a win or loss based on strategy win rate
-      const randomFactor = 0.9 + Math.random() * 0.2; // 0.9 to 1.1 multiplier for variance
-      const adjustedWinRate = winRate * randomFactor;
-      const isWin = Math.random() < adjustedWinRate;
-      
+      // Calculate daily change based on strategy
       let dailyChange = 0;
+      const randomFactor = Math.random();
       
-      if (isWin) {
-        // Win: apply strategy's win target percentage
-        const winMultiplier = 1 + (strategy.winTarget / 100) * (0.8 + Math.random() * 0.4); // 80-120% of target
-        dailyChange = dailyBetAmount * (winMultiplier - 1);
+      // Win/loss probability based on strategy risk level
+      const winProbability = {
+        low: 0.75,      // Conservative: 75% win rate
+        medium: 0.65,   // Balanced: 65% win rate
+        high: 0.58,     // Aggressive: 58% win rate
+        'very-high': 0.52 // Extreme: 52% win rate
+      }[strategy.riskLevel];
+      
+      if (randomFactor < winProbability) {
+        // Win: apply target growth with some variance
+        const variance = 0.8 + Math.random() * 0.4; // 80-120% of target
+        dailyChange = currentBalance * targetGrowth * variance;
         totalWins++;
         consecutiveLosses = 0;
       } else {
-        // Loss: apply strategy's loss limit percentage
-        const lossMultiplier = (strategy.lossLimit / 100) * (0.6 + Math.random() * 0.8); // 60-140% of limit
-        dailyChange = -dailyBetAmount * lossMultiplier;
+        // Loss: apply risk factor with some variance
+        const variance = 0.6 + Math.random() * 0.8; // 60-140% of risk
+        dailyChange = -currentBalance * riskFactor * variance;
         totalLosses++;
         consecutiveLosses++;
         maxConsecutiveLosses = Math.max(maxConsecutiveLosses, consecutiveLosses);
       }
 
       // Apply compound growth based on strategy
-      const compoundGrowth = currentBalance * dailyGrowthRate * (isWin ? 1 : -0.5);
+      const compoundGrowth = currentBalance * baseGrowthRate;
       dailyChange += compoundGrowth;
 
       currentBalance += dailyChange;
@@ -182,9 +178,9 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
   ];
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-        <h3 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           Simulação: {strategy.name}
         </h3>
         <select
@@ -206,15 +202,15 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center space-x-2 mb-2">
-            <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-primary-600" />
-            <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">
+            <DollarSign className="h-5 w-5 text-primary-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Saldo Final
             </span>
           </div>
-          <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
+          <p className="text-xl font-bold text-gray-900 dark:text-white">
             {formatCurrency(simulation.stats.finalBalance)}
           </p>
-          <p className={`text-xs md:text-sm ${
+          <p className={`text-sm ${
             simulation.stats.finalProfit >= 0 
               ? 'text-success-600 dark:text-success-400' 
               : 'text-error-600 dark:text-error-400'
@@ -225,56 +221,56 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center space-x-2 mb-2">
-            <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-secondary-600" />
-            <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">
+            <TrendingUp className="h-5 w-5 text-secondary-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               ROI
             </span>
           </div>
-          <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
+          <p className="text-xl font-bold text-gray-900 dark:text-white">
             {simulation.stats.roi.toFixed(1)}%
           </p>
-          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Retorno sobre investimento
           </p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center space-x-2 mb-2">
-            <Calculator className="h-4 w-4 md:h-5 md:w-5 text-accent-600" />
-            <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">
+            <Calculator className="h-5 w-5 text-accent-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Taxa de Vitória
             </span>
           </div>
-          <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
+          <p className="text-xl font-bold text-gray-900 dark:text-white">
             {simulation.stats.winRate.toFixed(1)}%
           </p>
-          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {simulation.stats.totalTrades} operações
           </p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center space-x-2 mb-2">
-            <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-warning-600" />
-            <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">
+            <AlertTriangle className="h-5 w-5 text-warning-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Max Drawdown
             </span>
           </div>
-          <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
+          <p className="text-xl font-bold text-gray-900 dark:text-white">
             {simulation.stats.maxDrawdown.toFixed(1)}%
           </p>
-          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Maior queda
           </p>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
-        <h4 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
           Evolução do Saldo
         </h4>
-        <div className="h-64 md:h-80">
+        <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={simulation.data}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -303,8 +299,8 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
       </div>
 
       {/* Risk Analysis */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
-        <h4 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
           Análise de Risco
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -314,26 +310,26 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
             </h5>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Melhor caso:</span>
-                <span className="text-xs md:text-sm font-medium text-success-600 dark:text-success-400">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Melhor caso:</span>
+                <span className="text-sm font-medium text-success-600 dark:text-success-400">
                   {formatCurrency(simulation.stats.maxBalance)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Pior caso:</span>
-                <span className="text-xs md:text-sm font-medium text-error-600 dark:text-error-400">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Pior caso:</span>
+                <span className="text-sm font-medium text-error-600 dark:text-error-400">
                   {formatCurrency(simulation.stats.minBalance)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Cenário atual:</span>
-                <span className="text-xs md:text-sm font-medium text-gray-900 dark:text-white">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Cenário atual:</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
                   {formatCurrency(simulation.stats.finalBalance)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Perdas consecutivas:</span>
-                <span className="text-xs md:text-sm font-medium text-warning-600 dark:text-warning-400">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Perdas consecutivas:</span>
+                <span className="text-sm font-medium text-warning-600 dark:text-warning-400">
                   {simulation.stats.maxConsecutiveLosses} dias
                 </span>
               </div>
@@ -344,7 +340,7 @@ export const StrategySimulator: React.FC<StrategySimulatorProps> = ({ strategy, 
             <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
               Recomendações
             </h5>
-            <div className="space-y-2 text-xs md:text-sm text-gray-600 dark:text-gray-400">
+            <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
               {strategy.riskLevel === 'low' && (
                 <p>✓ Estratégia conservadora, ideal para iniciantes</p>
               )}
