@@ -8,7 +8,8 @@ import {
   Calendar,
   BarChart3,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Search
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useBettingStore } from '../../store/bettingStore';
@@ -19,6 +20,7 @@ export const AdminDashboardPage: React.FC = () => {
   const { getAllUsers } = useAuthStore();
   const { bets, withdrawals, categories, goals } = useBettingStore();
   const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
 
   const users = getAllUsers();
   const clientUsers = users.filter(user => user.role === 'client');
@@ -120,7 +122,7 @@ export const AdminDashboardPage: React.FC = () => {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
-  // User performance
+  // User performance with search functionality
   const userPerformance = clientUsers.map(user => {
     const userBets = filteredBets.filter(bet => bet.userId === user.id);
     const userWithdrawals = filteredWithdrawals.filter(w => w.userId === user.id);
@@ -135,6 +137,13 @@ export const AdminDashboardPage: React.FC = () => {
       winRate: userBets.length > 0 ? (userBets.filter(bet => bet.result === 'win').length / userBets.length) * 100 : 0,
     };
   }).sort((a, b) => b.profit - a.profit);
+
+  // Filter user performance by search term
+  const filteredUserPerformance = userPerformance.filter(item => {
+    const searchLower = userSearchTerm.toLowerCase();
+    return item.user.name.toLowerCase().includes(searchLower) ||
+           item.user.email.toLowerCase().includes(searchLower);
+  });
 
   const periods = [
     { value: 'all', label: 'Todos' },
@@ -212,9 +221,27 @@ export const AdminDashboardPage: React.FC = () => {
         transition={{ delay: 0.4 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-          Performance dos Usuários
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Performance dos Usuários
+          </h3>
+          
+          {/* Search Bar */}
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou email..."
+              value={userSearchTerm}
+              onChange={(e) => setUserSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                       focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm
+                       placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -237,7 +264,7 @@ export const AdminDashboardPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {userPerformance.slice(0, 10).map((item, index) => (
+              {filteredUserPerformance.slice(0, 10).map((item, index) => (
                 <tr key={item.user.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-3 px-4">
                     <div>
@@ -278,6 +305,34 @@ export const AdminDashboardPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* No results message */}
+        {filteredUserPerformance.length === 0 && userSearchTerm && (
+          <div className="text-center py-8">
+            <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">
+              Nenhum usuário encontrado para "{userSearchTerm}"
+            </p>
+            <button
+              onClick={() => setUserSearchTerm('')}
+              className="mt-2 text-primary-600 hover:text-primary-700 text-sm"
+            >
+              Limpar busca
+            </button>
+          </div>
+        )}
+
+        {/* Show total results */}
+        {userSearchTerm && filteredUserPerformance.length > 0 && (
+          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            Mostrando {Math.min(filteredUserPerformance.length, 10)} de {filteredUserPerformance.length} usuários encontrados
+            {filteredUserPerformance.length > 10 && (
+              <span className="text-primary-600 dark:text-primary-400 ml-1">
+                (primeiros 10 resultados)
+              </span>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* Recent Activity */}
