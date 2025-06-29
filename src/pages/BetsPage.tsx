@@ -5,6 +5,8 @@ import { BetForm } from '../components/betting/BetForm';
 import { CategoryForm } from '../components/betting/CategoryForm';
 import { WithdrawalForm } from '../components/betting/WithdrawalForm';
 import { BetsList } from '../components/betting/BetsList';
+import { SuccessMessage } from '../components/common/SuccessMessage';
+import { useSuccessMessage } from '../hooks/useSuccessMessage';
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
 
@@ -14,6 +16,7 @@ export const BetsPage: React.FC = () => {
   const [showBetForm, setShowBetForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
+  const successMessage = useSuccessMessage();
 
   const userCategories = categories.filter(cat => cat.userId === user?.id);
   const userBets = bets.filter(bet => bet.userId === user?.id);
@@ -37,6 +40,42 @@ export const BetsPage: React.FC = () => {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+  };
+
+  const handleBetFormClose = () => {
+    setShowBetForm(false);
+    // Check if a bet was just added by comparing the current count
+    const currentBetCount = userBets.length;
+    setTimeout(() => {
+      const newBetCount = bets.filter(bet => bet.userId === user?.id).length;
+      if (newBetCount > currentBetCount) {
+        successMessage.showSuccess('Aposta adicionada com sucesso!');
+      }
+    }, 100);
+  };
+
+  const handleCategoryFormClose = () => {
+    setShowCategoryForm(false);
+    // Check if a category was just added
+    const currentCategoryCount = userCategories.length;
+    setTimeout(() => {
+      const newCategoryCount = categories.filter(cat => cat.userId === user?.id).length;
+      if (newCategoryCount > currentCategoryCount) {
+        successMessage.showSuccess('Categoria criada com sucesso!');
+      }
+    }, 100);
+  };
+
+  const handleWithdrawalFormClose = () => {
+    setShowWithdrawalForm(false);
+    // Check if a withdrawal was just added
+    const currentWithdrawalCount = userWithdrawals.length;
+    setTimeout(() => {
+      const newWithdrawalCount = withdrawals.filter(w => w.userId === user?.id).length;
+      if (newWithdrawalCount > currentWithdrawalCount) {
+        successMessage.showSuccess('Saque registrado com sucesso!');
+      }
+    }, 100);
   };
 
   const stats = [
@@ -194,9 +233,16 @@ export const BetsPage: React.FC = () => {
       </motion.div>
 
       {/* Forms */}
-      <BetForm isOpen={showBetForm} onClose={() => setShowBetForm(false)} />
-      <CategoryForm isOpen={showCategoryForm} onClose={() => setShowCategoryForm(false)} />
-      <WithdrawalForm isOpen={showWithdrawalForm} onClose={() => setShowWithdrawalForm(false)} />
+      <BetForm isOpen={showBetForm} onClose={handleBetFormClose} />
+      <CategoryForm isOpen={showCategoryForm} onClose={handleCategoryFormClose} />
+      <WithdrawalForm isOpen={showWithdrawalForm} onClose={handleWithdrawalFormClose} />
+
+      {/* Success Message */}
+      <SuccessMessage
+        isVisible={successMessage.isVisible}
+        message={successMessage.message}
+        onClose={successMessage.hideSuccess}
+      />
     </div>
   );
 };

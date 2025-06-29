@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useBettingStore } from '../../store/bettingStore';
 import { useAuthStore } from '../../store/authStore';
+import { format } from 'date-fns';
 
 const goalSchema = z.object({
   type: z.enum(['daily', 'weekly', 'monthly']),
@@ -34,7 +35,8 @@ export const GoalForm: React.FC<GoalFormProps> = ({ isOpen, onClose }) => {
   } = useForm<GoalFormData>({
     resolver: zodResolver(goalSchema),
     defaultValues: {
-      period: new Date().toISOString().slice(0, 7), // YYYY-MM format
+      // Set today's date in the correct format for each input type
+      period: format(new Date(), 'yyyy-MM-dd'), // Default to today for daily goals
     },
   });
 
@@ -45,9 +47,25 @@ export const GoalForm: React.FC<GoalFormProps> = ({ isOpen, onClose }) => {
     
     setLoading(true);
     try {
+      // Parse the period correctly based on goal type
+      let periodDate: Date;
+      
+      if (data.type === 'daily') {
+        // For daily goals, use the exact date selected
+        periodDate = new Date(data.period + 'T00:00:00');
+      } else if (data.type === 'weekly') {
+        // For weekly goals, use the start of the selected week
+        periodDate = new Date(data.period + 'T00:00:00');
+      } else {
+        // For monthly goals, use the first day of the selected month
+        const [year, month] = data.period.split('-');
+        periodDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      }
+
       addGoal({
         ...data,
         userId: user.id,
+        period: periodDate.toISOString(),
         currentValue: 0,
         completed: false,
       });
@@ -65,6 +83,36 @@ export const GoalForm: React.FC<GoalFormProps> = ({ isOpen, onClose }) => {
     { value: 'weekly', label: 'Semanal', description: 'Meta para uma semana' },
     { value: 'monthly', label: 'Mensal', description: 'Meta para um mês' },
   ];
+
+  // Get the correct input type and default value based on goal type
+  const getInputTypeAndValue = () => {
+    const today = new Date();
+    
+    switch (goalType) {
+      case 'daily':
+        return {
+          type: 'date',
+          defaultValue: format(today, 'yyyy-MM-dd'),
+        };
+      case 'weekly':
+        return {
+          type: 'week',
+          defaultValue: format(today, 'yyyy-\\WW'),
+        };
+      case 'monthly':
+        return {
+          type: 'month',
+          defaultValue: format(today, 'yyyy-MM'),
+        };
+      default:
+        return {
+          type: 'date',
+          defaultValue: format(today, 'yyyy-MM-dd'),
+        };
+    }
+  };
+
+  const inputConfig = getInputTypeAndValue();
 
   if (!isOpen) return null;
 
@@ -146,8 +194,10 @@ export const GoalForm: React.FC<GoalFormProps> = ({ isOpen, onClose }) => {
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
-                type={goalType === 'daily' ? 'date' : goalType === 'weekly' ? 'week' : 'month'}
+                type={inputConfig.type}
                 {...register('period')}
+                defaultValue={inputConfig.defaultValue}
+                min={format(new Date(), goalType === 'monthly' ? 'yyyy-MM' : goalType === 'weekly' ? 'yyyy-\\WW' : 'yyyy-MM-dd')}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
