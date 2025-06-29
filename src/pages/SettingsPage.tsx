@@ -10,7 +10,9 @@ import {
   Download,
   Upload,
   Trash2,
-  Save
+  Save,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
@@ -18,9 +20,10 @@ import { InitialBalanceForm } from '../components/settings/InitialBalanceForm';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuthStore();
-  const { userSettings, updateSettings } = useBettingStore();
+  const { userSettings, updateSettings, resetAllUserData } = useBettingStore();
   const [loading, setLoading] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [formData, setFormData] = useState({
     stopLoss: userSettings?.stopLoss || 300,
@@ -31,16 +34,17 @@ export const SettingsPage: React.FC = () => {
 
   const handleSave = async () => {
     setLoading(true);
+    setMessage(null);
+    
     try {
       updateSettings(formData);
-      
-      // Apply theme immediately
-      document.documentElement.classList.toggle('dark', formData.theme === 'dark');
-      
-      // Show success message (you could add a toast here)
-      setTimeout(() => setLoading(false), 500);
+      setMessage({ type: 'success', text: 'Configurações salvas com sucesso!' });
+      setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
+      setMessage({ type: 'error', text: 'Erro ao salvar configurações' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
       setLoading(false);
     }
   };
@@ -63,23 +67,18 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleResetData = () => {
-    if (showResetConfirm) {
-      // Reset all data
-      updateSettings({
-        initialBalance: 1000,
-        currentBalance: 1000,
-        stopLoss: 300,
-        stopWin: 500,
-        notifications: true,
-        theme: 'light',
-      });
+    if (showResetConfirm && user) {
+      // Reset all user data
+      resetAllUserData(user.id);
       setFormData({
         stopLoss: 300,
         stopWin: 500,
         notifications: true,
-        theme: 'light',
+        theme: formData.theme, // Keep current theme
       });
       setShowResetConfirm(false);
+      setMessage({ type: 'success', text: 'Todos os dados foram resetados com sucesso!' });
+      setTimeout(() => setMessage(null), 3000);
     } else {
       setShowResetConfirm(true);
       setTimeout(() => setShowResetConfirm(false), 5000);
@@ -167,6 +166,33 @@ export const SettingsPage: React.FC = () => {
         </button>
       </div>
 
+      {message && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-lg border ${
+            message.type === 'success'
+              ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+              : 'bg-error-50 dark:bg-error-900/20 border-error-200 dark:border-error-800'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            {message.type === 'success' ? (
+              <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
+            ) : (
+              <AlertTriangle className="h-5 w-5 text-error-600 dark:text-error-400" />
+            )}
+            <p className={`text-sm ${
+              message.type === 'success'
+                ? 'text-success-600 dark:text-success-400'
+                : 'text-error-600 dark:text-error-400'
+            }`}>
+              {message.text}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Initial Balance Configuration */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -252,10 +278,18 @@ export const SettingsPage: React.FC = () => {
                   {setting.type === 'select' && (
                     <select
                       value={formData[setting.key as keyof typeof formData] as string}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        [setting.key]: e.target.value
-                      })}
+                      onChange={(e) => {
+                        const newFormData = {
+                          ...formData,
+                          [setting.key]: e.target.value
+                        };
+                        setFormData(newFormData);
+                        
+                        // Apply theme change immediately
+                        if (setting.key === 'theme') {
+                          document.documentElement.classList.toggle('dark', e.target.value === 'dark');
+                        }
+                      }}
                       className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                                focus:ring-2 focus:ring-primary-500 focus:border-transparent
                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
@@ -322,7 +356,7 @@ export const SettingsPage: React.FC = () => {
 
         <div className="mt-4 p-4 bg-warning-50 dark:bg-warning-900/20 rounded-lg">
           <p className="text-sm text-warning-800 dark:text-warning-200">
-            <strong>Atenção:</strong> O reset de dados irá apagar todas as suas apostas, metas e configurações.
+            <strong>Atenção:</strong> O reset de dados irá apagar <strong>TODAS</strong> as suas apostas, saques, categorias, metas e progresso.
             Esta ação não pode ser desfeita. Recomendamos fazer um backup antes.
           </p>
         </div>

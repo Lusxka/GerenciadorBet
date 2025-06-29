@@ -9,6 +9,14 @@ interface BettingState {
   goals: Goal[];
   userSettings: UserSettings | null;
   dayStatuses: DayStatus[];
+  notifications: Array<{
+    id: string;
+    type: 'stop-win' | 'stop-loss' | 'goal-achieved';
+    title: string;
+    message: string;
+    timestamp: Date;
+    read: boolean;
+  }>;
   
   // Categories
   addCategory: (category: Omit<BettingCategory, 'id'>) => void;
@@ -33,9 +41,15 @@ interface BettingState {
   // Settings
   updateSettings: (settings: Partial<UserSettings>) => void;
   initializeSettings: (userId: string) => void;
+  resetAllUserData: (userId: string) => void;
   
   // Day statuses
   updateDayStatus: (date: string, status: DayStatus['status'], profit: number) => void;
+  
+  // Notifications
+  addNotification: (notification: Omit<BettingState['notifications'][0], 'id' | 'timestamp' | 'read'>) => void;
+  markNotificationAsRead: (id: string) => void;
+  clearNotifications: () => void;
   
   // Calculations
   calculateBalance: () => void;
@@ -51,6 +65,7 @@ export const useBettingStore = create<BettingState>()(
       goals: [],
       userSettings: null,
       dayStatuses: [],
+      notifications: [],
 
       addCategory: (category) => {
         const newCategory: BettingCategory = {
@@ -114,8 +129,22 @@ export const useBettingStore = create<BettingState>()(
         const dateStr = new Date(bet.date).toISOString().split('T')[0];
         get().updateDayStatus(dateStr, profit > 0 ? 'positive' : 'negative', profit);
         
-        // Check stop limits
-        get().checkStopLimits();
+        // Check stop limits and add notifications
+        const { stopLoss, stopWin } = get().checkStopLimits();
+        
+        if (stopWin) {
+          get().addNotification({
+            type: 'stop-win',
+            title: 'Meta Atingida! 🎉',
+            message: `Parabéns! Você atingiu sua meta de ganho de ${userSettings ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(userSettings.stopWin) : 'R$ 0,00'} hoje.`,
+          });
+        } else if (stopLoss) {
+          get().addNotification({
+            type: 'stop-loss',
+            title: 'Stop Loss Atingido ⚠️',
+            message: `Você atingiu seu limite de perda de ${userSettings ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(userSettings.stopLoss) : 'R$ 0,00'} hoje. Considere parar.`,
+          });
+        }
       },
 
       updateBet: (id, bet) => {
@@ -184,11 +213,31 @@ export const useBettingStore = create<BettingState>()(
       },
 
       updateGoal: (id, goal) => {
-        set((state) => ({
-          goals: state.goals.map((g) =>
-            g.id === id ? { ...g, ...goal, completedAt: goal.completed ? new Date() : g.completedAt } : g
-          ),
-        }));
+        set((state) => {
+          const updatedGoals = state.goals.map((g) => {
+            if (g.id === id) {
+              const updatedGoal = { 
+                ...g, 
+                ...goal, 
+                completedAt: goal.completed && !g.completed ? new Date() : g.completedAt 
+              };
+              
+              // Check if goal was just completed
+              if (goal.completed && !g.completed) {
+                get().addNotification({
+                  type: 'goal-achieved',
+                  title: 'Meta Concluída! 🎯',
+                  message: `Parabéns! Você concluiu sua meta ${g.type === 'daily' ? 'diária' : g.type === 'weekly' ? 'semanal' : 'mensal'} de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(g.targetValue)}.`,
+                });
+              }
+              
+              return updatedGoal;
+            }
+            return g;
+          });
+          
+          return { goals: updatedGoals };
+        });
       },
 
       deleteGoal: (id) => {
@@ -203,6 +252,11 @@ export const useBettingStore = create<BettingState>()(
             ? { ...state.userSettings, ...settings }
             : null,
         }));
+        
+        // Apply theme immediately if theme is being updated
+        if (settings.theme) {
+          document.documentElement.classList.toggle('dark', settings.theme === 'dark');
+        }
       },
 
       initializeSettings: (userId) => {
@@ -211,8 +265,8 @@ export const useBettingStore = create<BettingState>()(
           set({
             userSettings: {
               userId,
-              initialBalance: 1000,
-              currentBalance: 1000,
+              initialBalance: 0, // Default to 0 as requested
+              currentBalance: 0,
               stopLoss: 300,
               stopWin: 500,
               notifications: true,
@@ -220,6 +274,28 @@ export const useBettingStore = create<BettingState>()(
             },
           });
         }
+      },
+
+      resetAllUserData: (userId) => {
+        set((state) => ({
+          // Remove all user data
+          categories: state.categories.filter(cat => cat.userId !== userId),
+          bets: state.bets.filter(bet => bet.userId !== userId),
+          withdrawals: state.withdrawals.filter(w => w.userId !== userId),
+          goals: state.goals.filter(goal => goal.userId !== userId),
+          dayStatuses: [], // Clear all day statuses
+          notifications: [], // Clear all notifications
+          // Reset user settings to default
+          userSettings: {
+            userId,
+            initialBalance: 0,
+            currentBalance: 0,
+            stopLoss: 300,
+            stopWin: 500,
+            notifications: true,
+            theme: state.userSettings?.theme || 'light', // Keep current theme
+          },
+        }));
       },
 
       updateDayStatus: (date, status, profit) => {
@@ -239,6 +315,31 @@ export const useBettingStore = create<BettingState>()(
             };
           }
         });
+      },
+
+      addNotification: (notification) => {
+        const newNotification = {
+          ...notification,
+          id: `notification_${Date.now()}`,
+          timestamp: new Date(),
+          read: false,
+        };
+        
+        set((state) => ({
+          notifications: [newNotification, ...state.notifications],
+        }));
+      },
+
+      markNotificationAsRead: (id) => {
+        set((state) => ({
+          notifications: state.notifications.map(n =>
+            n.id === id ? { ...n, read: true } : n
+          ),
+        }));
+      },
+
+      clearNotifications: () => {
+        set({ notifications: [] });
       },
 
       calculateBalance: () => {

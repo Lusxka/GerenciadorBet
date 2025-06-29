@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Save, AlertTriangle } from 'lucide-react';
+import { DollarSign, Save, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useBettingStore } from '../../store/bettingStore';
 
 export const InitialBalanceForm: React.FC = () => {
   const { userSettings, updateSettings } = useBettingStore();
-  const [newBalance, setNewBalance] = useState(userSettings?.initialBalance || 1000);
+  const [newBalance, setNewBalance] = useState(userSettings?.initialBalance || 0);
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -20,6 +21,8 @@ export const InitialBalanceForm: React.FC = () => {
     if (!userSettings) return;
     
     setLoading(true);
+    setMessage(null);
+    
     try {
       // Calculate the difference to adjust current balance
       const difference = newBalance - userSettings.initialBalance;
@@ -31,9 +34,13 @@ export const InitialBalanceForm: React.FC = () => {
       });
       
       setShowConfirm(false);
-      setTimeout(() => setLoading(false), 500);
+      setMessage({ type: 'success', text: 'Saldo inicial atualizado com sucesso!' });
+      setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       console.error('Erro ao atualizar saldo inicial:', error);
+      setMessage({ type: 'error', text: 'Erro ao atualizar saldo inicial' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
       setLoading(false);
     }
   };
@@ -55,6 +62,33 @@ export const InitialBalanceForm: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {message && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`mb-6 p-3 rounded-lg border ${
+            message.type === 'success'
+              ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+              : 'bg-error-50 dark:bg-error-900/20 border-error-200 dark:border-error-800'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            {message.type === 'success' ? (
+              <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-error-600 dark:text-error-400" />
+            )}
+            <p className={`text-sm ${
+              message.type === 'success'
+                ? 'text-success-600 dark:text-success-400'
+                : 'text-error-600 dark:text-error-400'
+            }`}>
+              {message.text}
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -95,12 +129,12 @@ export const InitialBalanceForm: React.FC = () => {
                 type="number"
                 value={newBalance}
                 onChange={(e) => setNewBalance(Number(e.target.value))}
-                min="1"
+                min="0"
                 step="1"
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder="1000"
+                placeholder="0"
               />
             </div>
             <div className="flex items-center px-3 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg min-w-[120px]">
