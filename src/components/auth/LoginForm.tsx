@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, TrendingUp, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, TrendingUp, Lock, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 interface LoginFormProps {
@@ -12,22 +12,24 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { login } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setMessage(null);
 
     try {
-      const success = await login(email, password);
-      if (!success) {
-        setError('Email ou senha incorretos');
+      const result = await login(email, password);
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+      } else {
+        setMessage({ type: 'error', text: result.message });
       }
     } catch (err) {
-      setError('Erro ao fazer login. Tente novamente.');
+      setMessage({ type: 'error', text: 'Erro inesperado. Tente novamente.' });
     } finally {
       setLoading(false);
     }
@@ -101,13 +103,30 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
             </div>
           </div>
 
-          {error && (
+          {message && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="p-3 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg"
+              className={`p-3 rounded-lg border ${
+                message.type === 'success'
+                  ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+                  : 'bg-error-50 dark:bg-error-900/20 border-error-200 dark:border-error-800'
+              }`}
             >
-              <p className="text-sm text-error-600 dark:text-error-400">{error}</p>
+              <div className="flex items-center space-x-2">
+                {message.type === 'success' ? (
+                  <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-error-600 dark:text-error-400" />
+                )}
+                <p className={`text-sm ${
+                  message.type === 'success'
+                    ? 'text-success-600 dark:text-success-400'
+                    : 'text-error-600 dark:text-error-400'
+                }`}>
+                  {message.text}
+                </p>
+              </div>
             </motion.div>
           )}
 

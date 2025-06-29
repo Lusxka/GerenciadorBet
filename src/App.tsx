@@ -11,12 +11,10 @@ import { GoalsPage } from './pages/GoalsPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { StrategiesPage } from './pages/StrategiesPage';
 import { SettingsPage } from './pages/SettingsPage';
-
-// Placeholder components for admin pages
-const AdminDashboardPage = () => <div className="p-8 text-center">Dashboard Admin em desenvolvimento</div>;
-const AdminUsersPage = () => <div className="p-8 text-center">Gerenciamento de Usuários em desenvolvimento</div>;
-const AdminReportsPage = () => <div className="p-8 text-center">Relatórios Admin em desenvolvimento</div>;
-const AdminSettingsPage = () => <div className="p-8 text-center">Configurações Admin em desenvolvimento</div>;
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminReportsPage } from './pages/admin/AdminReportsPage';
+import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 
 function App() {
   const { isAuthenticated, user } = useAuthStore();

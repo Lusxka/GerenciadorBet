@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
+import { InitialBalanceForm } from '../components/settings/InitialBalanceForm';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -22,7 +23,6 @@ export const SettingsPage: React.FC = () => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const [formData, setFormData] = useState({
-    initialBalance: userSettings?.initialBalance || 1000,
     stopLoss: userSettings?.stopLoss || 300,
     stopWin: userSettings?.stopWin || 500,
     notifications: userSettings?.notifications || true,
@@ -74,7 +74,6 @@ export const SettingsPage: React.FC = () => {
         theme: 'light',
       });
       setFormData({
-        initialBalance: 1000,
         stopLoss: 300,
         stopWin: 500,
         notifications: true,
@@ -100,14 +99,6 @@ export const SettingsPage: React.FC = () => {
       icon: DollarSign,
       color: 'primary',
       settings: [
-        {
-          key: 'initialBalance',
-          label: 'Saldo Inicial',
-          type: 'number',
-          description: 'Valor inicial da sua banca',
-          min: 1,
-          step: 1,
-        },
         {
           key: 'stopLoss',
           label: 'Stop Loss',
@@ -152,7 +143,7 @@ export const SettingsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 px-6">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -176,13 +167,21 @@ export const SettingsPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Initial Balance Configuration */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <InitialBalanceForm />
+      </motion.div>
+
       {/* Settings Sections */}
       {settingSections.map((section, sectionIndex) => (
         <motion.div
           key={section.title}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: sectionIndex * 0.1 }}
+          transition={{ delay: (sectionIndex + 1) * 0.1 }}
           className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
         >
           <div className="flex items-center space-x-3 mb-6">
@@ -222,11 +221,11 @@ export const SettingsPage: React.FC = () => {
                                  focus:ring-2 focus:ring-primary-500 focus:border-transparent
                                  bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                       />
-                      {setting.key.includes('Balance') || setting.key.includes('Loss') || setting.key.includes('Win') ? (
+                      {(setting.key.includes('Loss') || setting.key.includes('Win')) && (
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           {formatCurrency(formData[setting.key as keyof typeof formData] as number)}
                         </span>
-                      ) : null}
+                      )}
                     </div>
                   )}
                   
@@ -323,7 +322,7 @@ export const SettingsPage: React.FC = () => {
 
         <div className="mt-4 p-4 bg-warning-50 dark:bg-warning-900/20 rounded-lg">
           <p className="text-sm text-warning-800 dark:text-warning-200">
-            <strong>Atenção:</strong> O reset de dados irá apagar todas as suas apostas, metas e configurações. 
+            <strong>Atenção:</strong> O reset de dados irá apagar todas as suas apostas, metas e configurações.
             Esta ação não pode ser desfeita. Recomendamos fazer um backup antes.
           </p>
         </div>

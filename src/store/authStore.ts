@@ -6,20 +6,24 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  users: User[];
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  getAllUsers: () => User[];
+  updateUser: (id: string, updates: Partial<User>) => void;
+  deleteUser: (id: string) => void;
 }
 
-// Simulação de usuários para demonstração
-const mockUsers = [
+// Initial mock users for demonstration
+const initialMockUsers = [
   {
     id: '1',
     email: 'admin@sistema.com',
     password: 'admin123',
     name: 'Administrador',
     role: 'admin' as const,
-    createdAt: new Date(),
+    createdAt: new Date('2024-01-01'),
     updatedAt: new Date(),
   },
   {
@@ -28,7 +32,7 @@ const mockUsers = [
     password: 'cliente123',
     name: 'Cliente Teste',
     role: 'client' as const,
-    createdAt: new Date(),
+    createdAt: new Date('2024-01-15'),
     updatedAt: new Date(),
   },
 ];
@@ -39,11 +43,12 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
+      users: initialMockUsers,
 
       login: async (email: string, password: string) => {
         try {
-          // Simulação de autenticação
-          const user = mockUsers.find(u => u.email === email && u.password === password);
+          const { users } = get();
+          const user = users.find(u => u.email === email && u.password === password);
           
           if (user) {
             const { password: _, ...userWithoutPassword } = user;
@@ -55,13 +60,13 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
             });
             
-            return true;
+            return { success: true, message: 'Login realizado com sucesso!' };
           }
           
-          return false;
+          return { success: false, message: 'Email ou senha incorretos' };
         } catch (error) {
           console.error('Erro no login:', error);
-          return false;
+          return { success: false, message: 'Erro interno do servidor' };
         }
       },
 
@@ -75,40 +80,81 @@ export const useAuthStore = create<AuthState>()(
 
       register: async (name: string, email: string, password: string) => {
         try {
-          // Verificar se o email já existe
-          const existingUser = mockUsers.find(u => u.email === email);
-          if (existingUser) {
-            return false;
+          const { users } = get();
+          
+          // Validations
+          if (!name.trim()) {
+            return { success: false, message: 'Nome é obrigatório' };
+          }
+          
+          if (!email.trim()) {
+            return { success: false, message: 'Email é obrigatório' };
+          }
+          
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return { success: false, message: 'Email inválido' };
+          }
+          
+          if (password.length < 6) {
+            return { success: false, message: 'Senha deve ter pelo menos 6 caracteres' };
           }
 
-          // Criar novo usuário
+          // Check if email already exists
+          const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+          if (existingUser) {
+            return { success: false, message: 'Este email já está em uso' };
+          }
+
+          // Create new user
           const newUser = {
-            id: `user_${Date.now()}`,
-            email,
+            id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            email: email.toLowerCase(),
             password,
-            name,
+            name: name.trim(),
             role: 'client' as const,
             createdAt: new Date(),
             updatedAt: new Date(),
           };
 
-          mockUsers.push(newUser);
+          const updatedUsers = [...users, newUser];
           
-          // Auto-login após registro
+          // Auto-login after registration
           const { password: _, ...userWithoutPassword } = newUser;
           const mockToken = `token_${newUser.id}_${Date.now()}`;
           
           set({
+            users: updatedUsers,
             user: userWithoutPassword,
             token: mockToken,
             isAuthenticated: true,
           });
 
-          return true;
+          return { success: true, message: 'Conta criada com sucesso!' };
         } catch (error) {
           console.error('Erro no registro:', error);
-          return false;
+          return { success: false, message: 'Erro interno do servidor' };
         }
+      },
+
+      getAllUsers: () => {
+        const { users } = get();
+        return users.map(({ password, ...user }) => user as User);
+      },
+
+      updateUser: (id: string, updates: Partial<User>) => {
+        set((state) => ({
+          users: state.users.map(user => 
+            user.id === id 
+              ? { ...user, ...updates, updatedAt: new Date() }
+              : user
+          ),
+        }));
+      },
+
+      deleteUser: (id: string) => {
+        set((state) => ({
+          users: state.users.filter(user => user.id !== id),
+        }));
       },
     }),
     {
@@ -117,6 +163,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
+        users: state.users,
       }),
     }
   )

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, TrendingUp, Lock, Mail, User } from 'lucide-react';
+import { Eye, EyeOff, TrendingUp, Lock, Mail, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 interface RegisterFormProps {
@@ -14,34 +14,60 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { register } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setMessage(null);
 
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem');
+    // Client-side validations
+    if (!name.trim()) {
+      setMessage({ type: 'error', text: 'Nome é obrigatório' });
+      setLoading(false);
+      return;
+    }
+
+    if (!email.trim()) {
+      setMessage({ type: 'error', text: 'Email é obrigatório' });
+      setLoading(false);
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMessage({ type: 'error', text: 'Email inválido' });
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      setMessage({ type: 'error', text: 'A senha deve ter pelo menos 6 caracteres' });
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage({ type: 'error', text: 'As senhas não coincidem' });
       setLoading(false);
       return;
     }
 
     try {
-      const success = await register(name, email, password);
-      if (!success) {
-        setError('Email já está em uso');
+      const result = await register(name, email, password);
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+        // Clear form
+        setName('');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+      } else {
+        setMessage({ type: 'error', text: result.message });
       }
     } catch (err) {
-      setError('Erro ao criar conta. Tente novamente.');
+      setMessage({ type: 'error', text: 'Erro inesperado. Tente novamente.' });
     } finally {
       setLoading(false);
     }
@@ -133,6 +159,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
+            {password && (
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {password.length < 6 ? 'Mínimo 6 caracteres' : '✓ Senha válida'}
+              </div>
+            )}
           </div>
 
           <div>
@@ -153,21 +184,47 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
                 required
               />
             </div>
+            {confirmPassword && (
+              <div className="mt-2 text-xs">
+                {password === confirmPassword ? (
+                  <span className="text-success-600 dark:text-success-400">✓ Senhas coincidem</span>
+                ) : (
+                  <span className="text-error-600 dark:text-error-400">✗ Senhas não coincidem</span>
+                )}
+              </div>
+            )}
           </div>
 
-          {error && (
+          {message && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="p-3 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg"
+              className={`p-3 rounded-lg border ${
+                message.type === 'success'
+                  ? 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800'
+                  : 'bg-error-50 dark:bg-error-900/20 border-error-200 dark:border-error-800'
+              }`}
             >
-              <p className="text-sm text-error-600 dark:text-error-400">{error}</p>
+              <div className="flex items-center space-x-2">
+                {message.type === 'success' ? (
+                  <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-error-600 dark:text-error-400" />
+                )}
+                <p className={`text-sm ${
+                  message.type === 'success'
+                    ? 'text-success-600 dark:text-success-400'
+                    : 'text-error-600 dark:text-error-400'
+                }`}>
+                  {message.text}
+                </p>
+              </div>
             </motion.div>
           )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !name || !email || password.length < 6 || password !== confirmPassword}
             className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400
                      text-white py-3 px-4 rounded-lg font-medium
                      transition-colors duration-200 flex items-center justify-center"

@@ -14,6 +14,8 @@ import {
 import { useAuthStore } from '../store/authStore';
 import { useBettingStore } from '../store/bettingStore';
 import { BalanceChart } from '../components/analytics/BalanceChart';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -113,7 +115,7 @@ export const DashboardPage: React.FC = () => {
     {
       title: selectedPeriod === 'all' ? 'Lucro Total' : 'Lucro Período',
       value: formatCurrency(selectedPeriod === 'all' ? profit : filteredProfit),
-      change: formatCurrency(todayProfit),
+      change: `Hoje: ${formatCurrency(todayProfit)}`,
       changeType: (selectedPeriod === 'all' ? profit : filteredProfit) >= 0 ? 'positive' : 'negative',
       icon: (selectedPeriod === 'all' ? profit : filteredProfit) >= 0 ? TrendingUp : TrendingDown,
       color: (selectedPeriod === 'all' ? profit : filteredProfit) >= 0 ? 'success' : 'error'
@@ -143,8 +145,26 @@ export const DashboardPage: React.FC = () => {
     { value: 'month', label: '30 dias' },
   ];
 
+  // Recent transactions (bets and withdrawals combined)
+  const recentTransactions = [
+    ...filteredBets.map(bet => ({
+      ...bet,
+      type: 'bet' as const,
+      date: new Date(bet.date),
+    })),
+    ...filteredWithdrawals.map(w => ({
+      ...w,
+      type: 'withdrawal' as const,
+      date: new Date(w.date),
+      profit: -w.amount,
+      result: 'withdrawal' as const,
+    })),
+  ]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 8);
+
   return (
-    <div className="space-y-6 px-6">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -320,40 +340,46 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          {todayBets.length === 0 ? (
+          {recentTransactions.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400 text-center py-4 text-sm">
-              Nenhuma aposta hoje ainda
+              Nenhuma atividade no período selecionado
             </p>
           ) : (
-            todayBets.slice(-5).reverse().map((bet, index) => (
-              <div key={bet.id} className="flex items-center justify-between py-2">
+            recentTransactions.map((transaction, index) => (
+              <div key={`${transaction.type}-${transaction.id}`} className="flex items-center justify-between py-2">
                 <div className="flex items-center space-x-3">
                   <div className={`w-2 h-2 rounded-full ${
-                    bet.result === 'win' ? 'bg-success-500' : 'bg-error-500'
+                    transaction.type === 'withdrawal' 
+                      ? 'bg-warning-500'
+                      : transaction.result === 'win' 
+                      ? 'bg-success-500' 
+                      : 'bg-error-500'
                   }`} />
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      Aposta #{bet.id.slice(-4)}
+                      {transaction.type === 'withdrawal' 
+                        ? `Saque: ${transaction.description}`
+                        : `Aposta #${transaction.id.slice(-4)}`
+                      }
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(bet.date).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {format(transaction.date, 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className={`text-sm font-medium ${
-                    bet.profit >= 0 
+                    transaction.profit >= 0 
                       ? 'text-success-600 dark:text-success-400' 
                       : 'text-error-600 dark:text-error-400'
                   }`}>
-                    {bet.profit >= 0 ? '+' : ''}{formatCurrency(bet.profit)}
+                    {transaction.profit >= 0 ? '+' : ''}{formatCurrency(transaction.profit)}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {bet.result === 'win' ? `${bet.multiplier}x` : 'Perda'}
-                  </p>
+                  {transaction.type === 'bet' && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {transaction.result === 'win' ? `${transaction.multiplier}x` : 'Perda'}
+                    </p>
+                  )}
                 </div>
               </div>
             ))
