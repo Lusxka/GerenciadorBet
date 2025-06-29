@@ -130,7 +130,7 @@ export const useBettingStore = create<BettingState>()(
         const dateStr = new Date(bet.date).toISOString().split('T')[0];
         get().updateDayStatus(dateStr, profit > 0 ? 'positive' : 'negative', profit);
         
-        // Check stop limits and add notifications
+        // Check stop limits and add notifications - but don't update day status here
         const { stopLoss, stopWin } = get().checkStopLimits();
         
         if (stopWin) {
@@ -139,12 +139,28 @@ export const useBettingStore = create<BettingState>()(
             title: 'Meta Atingida! 🎉',
             message: `Parabéns! Você atingiu sua meta de ganho de ${userSettings ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(userSettings.stopWin) : 'R$ 0,00'} hoje.`,
           });
+          
+          // Update day status for stop-win separately
+          const todayBets = get().bets.filter(b => 
+            b.userId === userSettings?.userId && 
+            new Date(b.date).toISOString().split('T')[0] === dateStr
+          );
+          const todayProfit = todayBets.reduce((sum, b) => sum + b.profit, 0);
+          get().updateDayStatus(dateStr, 'stop-win', todayProfit);
         } else if (stopLoss) {
           get().addNotification({
             type: 'stop-loss',
             title: 'Stop Loss Atingido ⚠️',
             message: `Você atingiu seu limite de perda de ${userSettings ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(userSettings.stopLoss) : 'R$ 0,00'} hoje. Considere parar.`,
           });
+          
+          // Update day status for stop-loss separately
+          const todayBets = get().bets.filter(b => 
+            b.userId === userSettings?.userId && 
+            new Date(b.date).toISOString().split('T')[0] === dateStr
+          );
+          const todayProfit = todayBets.reduce((sum, b) => sum + b.profit, 0);
+          get().updateDayStatus(dateStr, 'stop-loss', todayProfit);
         }
       },
 
@@ -442,14 +458,7 @@ export const useBettingStore = create<BettingState>()(
         const stopLossReached = todayProfit <= -userSettings.stopLoss;
         const stopWinReached = todayProfit >= userSettings.stopWin;
 
-        if (stopLossReached || stopWinReached) {
-          get().updateDayStatus(
-            today, 
-            stopLossReached ? 'stop-loss' : 'stop-win', 
-            todayProfit
-          );
-        }
-
+        // Don't update day status here - let the caller handle it
         return { 
           stopLoss: stopLossReached, 
           stopWin: stopWinReached 
