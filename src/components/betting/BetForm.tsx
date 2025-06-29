@@ -24,6 +24,21 @@ interface BetFormProps {
   onClose: () => void;
 }
 
+// Função para obter a data de hoje no formato correto (YYYY-MM-DD)
+const getTodayDateString = (): string => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Função para converter string de data para Date object no fuso horário local
+const createDateFromString = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day); // month - 1 porque Date usa 0-indexing para meses
+};
+
 export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
   const { user } = useAuthStore();
   const { categories, addBet } = useBettingStore();
@@ -41,7 +56,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
   } = useForm<BetFormData>({
     resolver: zodResolver(betSchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayDateString(), // Usando a função corrigida
       multiplier: 1,
       mg: false,
     },
@@ -57,7 +72,9 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
     if (!amount || !multiplier) return 0;
     
     if (result === 'win') {
-      return amount * multiplier - amount;
+      // O multiplicador já inclui o valor apostado, então o lucro é:
+      // (valor apostado × multiplicador) - valor apostado
+      return (amount * multiplier) - amount;
     } else {
       // Loss with MG (Martin Gale) logic
       if (mg) {
@@ -76,9 +93,13 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
       addBet({
         ...data,
         userId: user.id,
-        date: new Date(data.date),
+        date: createDateFromString(data.date), // Usando a função corrigida
       });
-      reset();
+      reset({
+        date: getTodayDateString(), // Resetando com a data correta
+        multiplier: 1,
+        mg: false,
+      });
       onClose();
     } catch (error) {
       console.error('Erro ao adicionar aposta:', error);
