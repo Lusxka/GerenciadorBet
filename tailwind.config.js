@@ -107,6 +107,9 @@ export default {
           '50%': { opacity: '0.8' },
         },
       },
+      screens: {
+        'xs': '475px',
+      },
     },
   },
   plugins: [],

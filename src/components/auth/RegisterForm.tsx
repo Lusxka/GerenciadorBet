@@ -85,28 +85,28 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-md"
+      className="w-full max-w-md mx-auto"
     >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-        <div className="text-center mb-8">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center mb-4">
-            <TrendingUp className="h-12 w-12 text-primary-600" />
+            <TrendingUp className="h-10 w-10 sm:h-12 sm:w-12 text-primary-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             Criar Conta
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
             Comece a gerenciar suas apostas hoje
           </p>
         </div>
 
         {/* Registration Status Alert */}
         {registrationBlocked && (
-          <div className="mb-6 p-4 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg">
             <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-error-600 dark:text-error-400" />
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-error-600 dark:text-error-400 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-error-800 dark:text-error-200">
+                <p className="text-xs sm:text-sm font-medium text-error-800 dark:text-error-200">
                   Registros Temporariamente Suspensos
                 </p>
                 <p className="text-xs text-error-700 dark:text-error-300 mt-1">
@@ -118,11 +118,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
         )}
 
         {!registrationBlocked && systemStatus.dailyRegistrationsUsed >= systemStatus.dailyRegistrationsLimit && (
-          <div className="mb-6 p-4 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
             <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-warning-600 dark:text-warning-400" />
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-warning-600 dark:text-warning-400 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-warning-800 dark:text-warning-200">
+                <p className="text-xs sm:text-sm font-medium text-warning-800 dark:text-warning-200">
                   Limite Diário Atingido
                 </p>
                 <p className="text-xs text-warning-700 dark:text-warning-300 mt-1">
@@ -133,21 +133,21 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Nome Completo
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={registrationBlocked}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base
                          placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Seu nome completo"
                 required
@@ -160,15 +160,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={registrationBlocked}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base
                          placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="seu@email.com"
                 required
@@ -181,15 +181,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
               Senha
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={registrationBlocked}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 sm:pl-10 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base
                          placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="••••••••"
                 required
@@ -198,9 +198,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={registrationBlocked}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed p-1"
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
               </button>
             </div>
             {password && (
@@ -215,15 +215,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
               Confirmar Senha
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={registrationBlocked}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base
                          placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="••••••••"
                 required
@@ -252,9 +252,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
             >
               <div className="flex items-center space-x-2">
                 {message.type === 'success' ? (
-                  <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400" />
+                  <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400 flex-shrink-0" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 text-error-600 dark:text-error-400" />
+                  <AlertCircle className="h-4 w-4 text-error-600 dark:text-error-400 flex-shrink-0" />
                 )}
                 <p className={`text-sm ${
                   message.type === 'success'
@@ -271,18 +271,18 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
             type="submit"
             disabled={loading || !name || !email || password.length < 6 || password !== confirmPassword || registrationBlocked}
             className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400
-                     text-white py-3 px-4 rounded-lg font-medium
+                     text-white py-2.5 sm:py-3 px-4 rounded-lg font-medium text-sm sm:text-base
                      transition-colors duration-200 flex items-center justify-center"
           >
             {loading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
             ) : (
               'Criar Conta'
             )}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Já tem uma conta?{' '}

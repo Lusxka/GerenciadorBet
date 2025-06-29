@@ -44,28 +44,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-md"
+      className="w-full max-w-md mx-auto"
     >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-        <div className="text-center mb-8">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center mb-4">
-            <TrendingUp className="h-12 w-12 text-primary-600" />
+            <TrendingUp className="h-10 w-10 sm:h-12 sm:w-12 text-primary-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             BetFinance
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2">
             Sistema de Gestão Financeira para Apostas
           </p>
         </div>
 
         {/* System Status Alert */}
         {systemStatus.maintenanceMode && (
-          <div className="mb-6 p-4 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
             <div className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-warning-600 dark:text-warning-400" />
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-warning-600 dark:text-warning-400 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-warning-800 dark:text-warning-200">
+                <p className="text-xs sm:text-sm font-medium text-warning-800 dark:text-warning-200">
                   Sistema em Manutenção
                 </p>
                 <p className="text-xs text-warning-700 dark:text-warning-300 mt-1">
@@ -76,20 +76,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base
                          placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="seu@email.com"
                 required
@@ -102,14 +102,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
               Senha
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 sm:pl-10 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm sm:text-base
                          placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="••••••••"
                 required
@@ -117,9 +117,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
               </button>
             </div>
           </div>
@@ -136,9 +136,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
             >
               <div className="flex items-center space-x-2">
                 {message.type === 'success' ? (
-                  <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400" />
+                  <CheckCircle className="h-4 w-4 text-success-600 dark:text-success-400 flex-shrink-0" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 text-error-600 dark:text-error-400" />
+                  <AlertCircle className="h-4 w-4 text-error-600 dark:text-error-400 flex-shrink-0" />
                 )}
                 <p className={`text-sm ${
                   message.type === 'success'
@@ -155,18 +155,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
             type="submit"
             disabled={loading}
             className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400
-                     text-white py-3 px-4 rounded-lg font-medium
+                     text-white py-2.5 sm:py-3 px-4 rounded-lg font-medium text-sm sm:text-base
                      transition-colors duration-200 flex items-center justify-center"
           >
             {loading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
             ) : (
               'Entrar'
             )}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Não tem uma conta?{' '}
@@ -180,8 +180,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
             </p>
           </div>
         </div>
-
-      
+      </div>
     </motion.div>
   );
 };

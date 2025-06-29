@@ -120,11 +120,11 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
               Data
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400" />
               <input
                 type="date"
                 {...register('date')}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 md:pl-10 pr-4 py-2.5 md:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
               />
@@ -140,7 +140,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
             </label>
             <select
               {...register('categoryId')}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+              className="w-full px-4 py-2.5 md:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                        focus:ring-2 focus:ring-primary-500 focus:border-transparent
                        bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             >
@@ -161,12 +161,12 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
               Valor da Aposta
             </label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400" />
               <input
                 type="number"
                 step="0.01"
                 {...register('amount', { valueAsNumber: true })}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 md:pl-10 pr-4 py-2.5 md:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 placeholder="0.00"
@@ -226,7 +226,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
             </label>
             <div className="grid grid-cols-2 gap-2">
               {periods.map((period) => (
-                <label key={period.value} className="flex items-center p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                <label key={period.value} className="flex items-center p-2.5 md:p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
                   <input
                     type="radio"
                     value={period.value}
@@ -234,8 +234,8 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
                     className="sr-only"
                   />
                   <div className="flex items-center space-x-2">
-                    <span className="text-lg">{period.icon}</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    <span className="text-base md:text-lg">{period.icon}</span>
+                    <span className="text-xs md:text-sm font-medium text-gray-900 dark:text-white">
                       {period.label}
                     </span>
                   </div>
@@ -252,12 +252,12 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
               Multiplicador
             </label>
             <div className="relative">
-              <Target className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Target className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400" />
               <input
                 type="number"
                 step="0.01"
                 {...register('multiplier', { valueAsNumber: true })}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
+                className="w-full pl-9 md:pl-10 pr-4 py-2.5 md:py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 placeholder="1.00"
@@ -326,20 +326,20 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+              className="flex-1 px-4 py-2.5 md:py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors flex items-center justify-center text-sm"
+              className="flex-1 px-4 py-2.5 md:py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors flex items-center justify-center text-sm"
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-white"></div>
               ) : (
                 <>
-                  <Plus className="h-5 w-5 mr-2" />
+                  <Plus className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                   Adicionar
                 </>
               )}

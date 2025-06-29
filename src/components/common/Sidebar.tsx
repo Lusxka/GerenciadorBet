@@ -16,7 +16,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 
 export const Sidebar: React.FC = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed on mobile
   const { user } = useAuthStore();
 
   const clientMenuItems = [
@@ -43,12 +43,12 @@ export const Sidebar: React.FC = () => {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-gray-800 shadow-lg"
+        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700"
       >
         {isCollapsed ? (
-          <Menu className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+          <Menu className="h-5 w-5 text-gray-600 dark:text-gray-400" />
         ) : (
-          <X className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+          <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
         )}
       </button>
 
@@ -69,26 +69,26 @@ export const Sidebar: React.FC = () => {
       `}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 border-b border-gray-200 dark:border-gray-700 px-4">
+          <div className="flex items-center justify-center h-14 md:h-16 border-b border-gray-200 dark:border-gray-700 px-4">
             <div className={`flex items-center space-x-2 ${isCollapsed ? 'md:hidden' : ''}`}>
-              <TrendingUp className="h-8 w-8 text-primary-600 flex-shrink-0" />
-              <span className="text-xl font-bold text-gray-900 dark:text-white truncate">
+              <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-primary-600 flex-shrink-0" />
+              <span className="text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
                 BetFinance
               </span>
             </div>
             {isCollapsed && (
-              <TrendingUp className="hidden md:block h-8 w-8 text-primary-600" />
+              <TrendingUp className="hidden md:block h-6 w-6 md:h-8 md:w-8 text-primary-600" />
             )}
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 md:px-4 py-4 md:py-6 space-y-1 overflow-y-auto">
             {menuItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center px-3 py-3 rounded-lg transition-colors group ${
+                  `flex items-center px-3 py-2.5 md:py-3 rounded-lg transition-colors group ${
                     isActive
                       ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -96,12 +96,12 @@ export const Sidebar: React.FC = () => {
                 }
                 onClick={() => setIsCollapsed(true)}
               >
-                <item.icon className={`h-6 w-6 flex-shrink-0 ${
+                <item.icon className={`h-5 w-5 md:h-6 md:w-6 flex-shrink-0 ${
                   isCollapsed ? 'md:mx-auto' : 'mr-3'
                 }`} />
                 <span className={`${
                   isCollapsed ? 'md:hidden' : ''
-                } font-medium text-sm truncate`}>
+                } font-medium text-sm md:text-base truncate`}>
                   {item.label}
                 </span>
               </NavLink>
@@ -109,17 +109,17 @@ export const Sidebar: React.FC = () => {
           </nav>
 
           {/* User info */}
-          <div className={`px-4 py-4 border-t border-gray-200 dark:border-gray-700 ${
+          <div className={`px-3 md:px-4 py-3 md:py-4 border-t border-gray-200 dark:border-gray-700 ${
             isCollapsed ? 'md:hidden' : ''
           }`}>
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
-                <span className="text-primary-600 dark:text-primary-400 font-semibold text-sm">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary-600 dark:text-primary-400 font-semibold text-xs md:text-sm">
                   {user?.name.charAt(0)}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <p className="text-xs md:text-sm font-medium text-gray-900 dark:text-white truncate">
                   {user?.name}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
