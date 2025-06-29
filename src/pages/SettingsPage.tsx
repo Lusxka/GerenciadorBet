@@ -18,14 +18,16 @@ import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
 import { InitialBalanceForm } from '../components/settings/InitialBalanceForm';
 import { ExportModal } from '../components/export/ExportModal';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
+import { useConfirmation } from '../hooks/useConfirmation';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuthStore();
   const { userSettings, updateSettings, resetAllUserData } = useBettingStore();
   const [loading, setLoading] = useState(false);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const confirmation = useConfirmation();
 
   const [formData, setFormData] = useState({
     stopLoss: userSettings?.stopLoss || 300,
@@ -51,8 +53,16 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleResetData = () => {
-    if (showResetConfirm && user) {
+  const handleResetData = async () => {
+    const confirmed = await confirmation.confirm({
+      title: 'Resetar Todos os Dados',
+      message: 'Esta ação irá apagar TODAS as suas apostas, saques, categorias, metas e progresso. Esta ação não pode ser desfeita. Recomendamos fazer um backup antes. Tem certeza que deseja continuar?',
+      type: 'danger',
+      confirmText: 'Sim, Resetar Tudo',
+      cancelText: 'Cancelar',
+    });
+
+    if (confirmed && user) {
       // Reset all user data
       resetAllUserData(user.id);
       setFormData({
@@ -61,12 +71,8 @@ export const SettingsPage: React.FC = () => {
         notifications: true,
         theme: formData.theme, // Keep current theme
       });
-      setShowResetConfirm(false);
       setMessage({ type: 'success', text: 'Todos os dados foram resetados com sucesso!' });
       setTimeout(() => setMessage(null), 3000);
-    } else {
-      setShowResetConfirm(true);
-      setTimeout(() => setShowResetConfirm(false), 5000);
     }
   };
 
@@ -328,14 +334,10 @@ export const SettingsPage: React.FC = () => {
           
           <button
             onClick={handleResetData}
-            className={`flex items-center justify-center px-4 py-3 rounded-lg transition-colors text-sm ${
-              showResetConfirm
-                ? 'bg-error-600 hover:bg-error-700 text-white'
-                : 'border border-error-300 dark:border-error-600 text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20'
-            }`}
+            className="flex items-center justify-center px-4 py-3 border border-error-300 dark:border-error-600 text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20 rounded-lg transition-colors text-sm"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            {showResetConfirm ? 'Confirmar Reset' : 'Resetar Dados'}
+            Resetar Dados
           </button>
         </div>
 
@@ -397,6 +399,19 @@ export const SettingsPage: React.FC = () => {
       <ExportModal 
         isOpen={showExportModal} 
         onClose={() => setShowExportModal(false)} 
+      />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmation.isOpen}
+        onClose={confirmation.handleCancel}
+        onConfirm={confirmation.handleConfirm}
+        title={confirmation.options.title}
+        message={confirmation.options.message}
+        type={confirmation.options.type}
+        confirmText={confirmation.options.confirmText}
+        cancelText={confirmation.options.cancelText}
+        loading={confirmation.loading}
       />
     </div>
   );

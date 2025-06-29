@@ -14,6 +14,8 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { ConfirmationModal } from '../../components/common/ConfirmationModal';
+import { useConfirmation } from '../../hooks/useConfirmation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -22,6 +24,7 @@ export const AdminUsersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const confirmation = useConfirmation();
 
   const users = getAllUsers();
 
@@ -33,16 +36,34 @@ export const AdminUsersPage: React.FC = () => {
     return matchesSearch && matchesRole;
   });
 
-  const handleDeleteUser = (userId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    const confirmed = await confirmation.confirm({
+      title: 'Excluir Usuário',
+      message: `Tem certeza que deseja excluir o usuário "${userName}"? Esta ação não pode ser desfeita e todos os dados do usuário serão perdidos.`,
+      type: 'danger',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+    });
+
+    if (confirmed) {
       deleteUser(userId);
       setSelectedUser(null);
     }
   };
 
-  const handleToggleRole = (userId: string, currentRole: string) => {
+  const handleToggleRole = async (userId: string, currentRole: string, userName: string) => {
     const newRole = currentRole === 'admin' ? 'client' : 'admin';
-    updateUser(userId, { role: newRole });
+    const confirmed = await confirmation.confirm({
+      title: 'Alterar Tipo de Usuário',
+      message: `Tem certeza que deseja alterar "${userName}" de ${currentRole === 'admin' ? 'Administrador' : 'Cliente'} para ${newRole === 'admin' ? 'Administrador' : 'Cliente'}?`,
+      type: 'warning',
+      confirmText: 'Alterar',
+      cancelText: 'Cancelar',
+    });
+
+    if (confirmed) {
+      updateUser(userId, { role: newRole });
+    }
   };
 
   const stats = [
@@ -238,7 +259,7 @@ export const AdminUsersPage: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleToggleRole(user.id, user.role)}
+                        onClick={() => handleToggleRole(user.id, user.role, user.name)}
                         className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
                           user.role === 'admin'
                             ? 'bg-success-100 text-success-800 hover:bg-success-200 dark:bg-success-900/20 dark:text-success-400'
@@ -249,7 +270,7 @@ export const AdminUsersPage: React.FC = () => {
                       </button>
                       
                       <button
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => handleDeleteUser(user.id, user.name)}
                         className="p-1 text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-300"
                         title="Excluir usuário"
                       >
@@ -272,6 +293,18 @@ export const AdminUsersPage: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      <ConfirmationModal
+        isOpen={confirmation.isOpen}
+        onClose={confirmation.handleCancel}
+        onConfirm={confirmation.handleConfirm}
+        title={confirmation.options.title}
+        message={confirmation.options.message}
+        type={confirmation.options.type}
+        confirmText={confirmation.options.confirmText}
+        cancelText={confirmation.options.cancelText}
+        loading={confirmation.loading}
+      />
     </div>
   );
 };

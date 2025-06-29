@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Target, Calendar, TrendingUp, CheckCircle, Clock, Filter, Trash2 } from 'lucide-react';
 import { GoalForm } from '../components/goals/GoalForm';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
+import { useConfirmation } from '../hooks/useConfirmation';
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear, startOfDay, endOfDay, isBefore, isToday } from 'date-fns';
@@ -12,6 +14,7 @@ export const GoalsPage: React.FC = () => {
   const { goals, bets, updateGoal, deleteGoal } = useBettingStore();
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [dateFilter, setDateFilter] = useState('all');
+  const confirmation = useConfirmation();
 
   const userGoals = goals.filter(goal => goal.userId === user?.id);
   const userBets = bets.filter(bet => bet.userId === user?.id);
@@ -169,8 +172,16 @@ export const GoalsPage: React.FC = () => {
   const completedCount = userGoals.filter(goal => goal.completed).length;
   const completionRate = totalGoals > 0 ? (completedCount / totalGoals) * 100 : 0;
 
-  const handleDeleteGoal = (goalId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta meta?')) {
+  const handleDeleteGoal = async (goalId: string, goalName: string) => {
+    const confirmed = await confirmation.confirm({
+      title: 'Excluir Meta',
+      message: `Tem certeza que deseja excluir a meta "${goalName}"? Esta ação não pode ser desfeita.`,
+      type: 'danger',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+    });
+
+    if (confirmed) {
       deleteGoal(goalId);
     }
   };
@@ -388,7 +399,7 @@ export const GoalsPage: React.FC = () => {
                         </p>
                       </div>
                       <button
-                        onClick={() => handleDeleteGoal(goal.id)}
+                        onClick={() => handleDeleteGoal(goal.id, `${getGoalTypeLabel(goal.type)} - ${getGoalPeriodLabel(goal.type, goal.period)}`)}
                         className="p-2 text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-300 hover:bg-error-100 dark:hover:bg-error-900/30 rounded-lg transition-colors"
                         title="Excluir meta expirada"
                       >
@@ -515,6 +526,18 @@ export const GoalsPage: React.FC = () => {
       )}
 
       <GoalForm isOpen={showGoalForm} onClose={() => setShowGoalForm(false)} />
+      
+      <ConfirmationModal
+        isOpen={confirmation.isOpen}
+        onClose={confirmation.handleCancel}
+        onConfirm={confirmation.handleConfirm}
+        title={confirmation.options.title}
+        message={confirmation.options.message}
+        type={confirmation.options.type}
+        confirmText={confirmation.options.confirmText}
+        cancelText={confirmation.options.cancelText}
+        loading={confirmation.loading}
+      />
     </div>
   );
 };
