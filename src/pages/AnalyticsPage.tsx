@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BarChart3, 
@@ -57,6 +57,68 @@ export const AnalyticsPage: React.FC = () => {
   };
 
   const { filteredBets, filteredWithdrawals } = getFilteredData();
+
+  // Memoized insights calculations
+  const insights = useMemo(() => {
+    const periods = [
+      { key: 'morning', label: 'Manhã', icon: '🌅' },
+      { key: 'afternoon', label: 'Tarde', icon: '☀️' },
+      { key: 'night', label: 'Noite', icon: '🌙' },
+      { key: 'late-night', label: 'Madrugada', icon: '🌃' },
+    ];
+
+    // Calculate best period
+    let bestPeriod = { name: '', winRate: 0, betsCount: 0 };
+    periods.forEach(period => {
+      const periodBets = filteredBets.filter(bet => bet.period === period.key);
+      if (periodBets.length > 0) {
+        const wins = periodBets.filter(bet => bet.result === 'win').length;
+        const winRate = (wins / periodBets.length) * 100;
+        if (winRate > bestPeriod.winRate || (winRate === bestPeriod.winRate && periodBets.length > bestPeriod.betsCount)) {
+          bestPeriod = {
+            name: period.label,
+            winRate,
+            betsCount: periodBets.length
+          };
+        }
+      }
+    });
+
+    // Calculate best category
+    let bestCategory = { name: '', profit: -Infinity, betsCount: 0 };
+    userCategories.forEach(category => {
+      const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
+      if (categoryBets.length > 0) {
+        const profit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
+        if (profit > bestCategory.profit) {
+          bestCategory = {
+            name: category.name,
+            profit,
+            betsCount: categoryBets.length
+          };
+        }
+      }
+    });
+
+    // Calculate average profit per bet
+    const totalBets = filteredBets.length;
+    const totalProfit = filteredBets.reduce((sum, bet) => sum + bet.profit, 0);
+    const avgProfitPerBet = totalBets > 0 ? totalProfit / totalBets : 0;
+
+    // Calculate average bet amount
+    const totalAmount = filteredBets.reduce((sum, bet) => sum + bet.amount, 0);
+    const avgBetAmount = totalBets > 0 ? totalAmount / totalBets : 0;
+
+    return {
+      bestPeriod,
+      bestCategory,
+      avgProfitPerBet,
+      avgBetAmount,
+      totalBets,
+      totalProfit,
+      totalAmount
+    };
+  }, [filteredBets, userCategories]);
 
   const totalBets = filteredBets.length;
   const totalWins = filteredBets.filter(bet => bet.result === 'win').length;
@@ -241,40 +303,14 @@ export const AnalyticsPage: React.FC = () => {
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
 
-      // Best performing category
-      let bestCategory = '';
-      let bestCategoryProfit = -Infinity;
-      userCategories.forEach(category => {
-        const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
-        const profit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
-        if (profit > bestCategoryProfit && categoryBets.length > 0) {
-          bestCategoryProfit = profit;
-          bestCategory = category.name;
-        }
-      });
-
-      // Best performing period
-      let bestPeriod = '';
-      let bestPeriodWinRate = 0;
-      periods.forEach(period => {
-        const periodBets = filteredBets.filter(bet => bet.period === period.key);
-        if (periodBets.length > 0) {
-          const winRate = (periodBets.filter(bet => bet.result === 'win').length / periodBets.length) * 100;
-          if (winRate > bestPeriodWinRate) {
-            bestPeriodWinRate = winRate;
-            bestPeriod = period.label;
-          }
-        }
-      });
-
-      const insights = [
-        `• Categoria mais lucrativa: ${bestCategory || 'N/A'} (${formatCurrency(bestCategoryProfit)})`,
-        `• Melhor período: ${bestPeriod || 'N/A'} (${bestPeriodWinRate.toFixed(1)}% de vitórias)`,
-        `• Média de lucro por aposta: ${totalBets > 0 ? formatCurrency(totalProfit / totalBets) : 'R$ 0,00'}`,
-        `• Valor médio por aposta: ${totalBets > 0 ? formatCurrency(totalAmount / totalBets) : 'R$ 0,00'}`,
+      const pdfInsights = [
+        `• Categoria mais lucrativa: ${insights.bestCategory.name || 'N/A'} (${formatCurrency(insights.bestCategory.profit)})`,
+        `• Melhor período: ${insights.bestPeriod.name || 'N/A'} (${insights.bestPeriod.winRate.toFixed(1)}% de vitórias)`,
+        `• Média de lucro por aposta: ${formatCurrency(insights.avgProfitPerBet)}`,
+        `• Valor médio por aposta: ${formatCurrency(insights.avgBetAmount)}`,
       ];
 
-      insights.forEach(insight => {
+      pdfInsights.forEach(insight => {
         pdf.text(insight, 20, yPosition);
         yPosition += 6;
       });
@@ -462,25 +498,10 @@ export const AnalyticsPage: React.FC = () => {
               Melhor Período
             </h4>
             <p className="text-sm text-primary-700 dark:text-primary-300">
-              {(() => {
-                const periods = ['morning', 'afternoon', 'night', 'late-night'];
-                const periodLabels = ['Manhã', 'Tarde', 'Noite', 'Madrugada'];
-                let bestPeriod = '';
-                let bestWinRate = 0;
-                
-                periods.forEach((period, index) => {
-                  const periodBets = filteredBets.filter(bet => bet.period === period);
-                  if (periodBets.length > 0) {
-                    const winRate = (periodBets.filter(bet => bet.result === 'win').length / periodBets.length) * 100;
-                    if (winRate > bestWinRate) {
-                      bestWinRate = winRate;
-                      bestPeriod = periodLabels[index];
-                    }
-                  }
-                });
-                
-                return bestPeriod ? `${bestPeriod} (${bestWinRate.toFixed(1)}%)` : 'N/A';
-              })()}
+              {insights.bestPeriod.name 
+                ? `${insights.bestPeriod.name} (${insights.bestPeriod.winRate.toFixed(1)}%)`
+                : 'N/A'
+              }
             </p>
           </div>
 
@@ -489,21 +510,10 @@ export const AnalyticsPage: React.FC = () => {
               Categoria Mais Lucrativa
             </h4>
             <p className="text-sm text-success-700 dark:text-success-300">
-              {(() => {
-                let bestCategory = '';
-                let bestProfit = -Infinity;
-                
-                userCategories.forEach(category => {
-                  const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
-                  const profit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
-                  if (profit > bestProfit && categoryBets.length > 0) {
-                    bestProfit = profit;
-                    bestCategory = category.name;
-                  }
-                });
-                
-                return bestCategory ? `${bestCategory} (${formatCurrency(bestProfit)})` : 'N/A';
-              })()}
+              {insights.bestCategory.name 
+                ? `${insights.bestCategory.name} (${formatCurrency(insights.bestCategory.profit)})`
+                : 'N/A'
+              }
             </p>
           </div>
 
