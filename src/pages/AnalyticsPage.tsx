@@ -74,7 +74,7 @@ export const AnalyticsPage: React.FC = () => {
     }).format(value);
   };
 
-  const exportToPDF = async () => {
+  const exportAnalyticsToPDF = async () => {
     setExportLoading(true);
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -93,38 +93,42 @@ export const AnalyticsPage: React.FC = () => {
       pdf.text(`Usuário: ${user?.name}`, pageWidth / 2, yPosition, { align: 'center' });
       
       yPosition += 5;
-      pdf.text(`Período: ${selectedPeriod === 'all' ? 'Todos' : selectedPeriod === 'today' ? 'Hoje' : selectedPeriod === 'week' ? '7 dias' : '30 dias'}`, pageWidth / 2, yPosition, { align: 'center' });
+      const periodLabel = selectedPeriod === 'all' ? 'Todos os dados' : 
+                         selectedPeriod === 'today' ? 'Hoje' : 
+                         selectedPeriod === 'week' ? 'Últimos 7 dias' : 
+                         'Últimos 30 dias';
+      pdf.text(`Período: ${periodLabel}`, pageWidth / 2, yPosition, { align: 'center' });
       
       yPosition += 5;
       pdf.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, pageWidth / 2, yPosition, { align: 'center' });
       
-      yPosition += 15;
+      yPosition += 20;
 
-      // Summary Statistics
+      // Performance Summary
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Resumo Estatístico', 20, yPosition);
+      pdf.text('Resumo de Performance', 20, yPosition);
       yPosition += 10;
 
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
       
-      const summaryData = [
+      const performanceData = [
         `Total de Apostas: ${totalBets}`,
         `Vitórias: ${totalWins} | Derrotas: ${totalLosses}`,
         `Taxa de Vitória: ${winRate.toFixed(1)}%`,
         `Total Apostado: ${formatCurrency(totalAmount)}`,
-        `Lucro/Prejuízo: ${formatCurrency(totalProfit)}`,
-        `ROI: ${roi.toFixed(1)}%`,
-        `Total Saques: ${formatCurrency(totalWithdrawals)}`,
+        `Lucro/Prejuízo Total: ${formatCurrency(totalProfit)}`,
+        `ROI (Retorno sobre Investimento): ${roi.toFixed(1)}%`,
+        `Total de Saques: ${formatCurrency(totalWithdrawals)}`,
       ];
 
-      summaryData.forEach(line => {
+      performanceData.forEach(line => {
         pdf.text(line, 20, yPosition);
         yPosition += 6;
       });
 
-      yPosition += 10;
+      yPosition += 15;
 
       // Category Analysis
       pdf.setFontSize(16);
@@ -135,37 +139,45 @@ export const AnalyticsPage: React.FC = () => {
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
 
-      userCategories.forEach(category => {
-        const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
-        if (categoryBets.length > 0) {
-          const categoryProfit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
-          const categoryAmount = categoryBets.reduce((sum, bet) => sum + bet.amount, 0);
-          const categoryWins = categoryBets.filter(bet => bet.result === 'win').length;
-          const categoryWinRate = (categoryWins / categoryBets.length) * 100;
-          
-          if (yPosition > pageHeight - 30) {
-            pdf.addPage();
-            yPosition = 20;
+      if (userCategories.length === 0) {
+        pdf.text('Nenhuma categoria criada', 20, yPosition);
+        yPosition += 10;
+      } else {
+        userCategories.forEach(category => {
+          const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
+          if (categoryBets.length > 0) {
+            const categoryProfit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
+            const categoryAmount = categoryBets.reduce((sum, bet) => sum + bet.amount, 0);
+            const categoryWins = categoryBets.filter(bet => bet.result === 'win').length;
+            const categoryWinRate = (categoryWins / categoryBets.length) * 100;
+            const categoryROI = categoryAmount > 0 ? (categoryProfit / categoryAmount) * 100 : 0;
+            
+            if (yPosition > pageHeight - 40) {
+              pdf.addPage();
+              yPosition = 20;
+            }
+            
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`${category.icon} ${category.name}:`, 20, yPosition);
+            yPosition += 6;
+            
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`  • Apostas: ${categoryBets.length}`, 25, yPosition);
+            yPosition += 5;
+            pdf.text(`  • Valor apostado: ${formatCurrency(categoryAmount)}`, 25, yPosition);
+            yPosition += 5;
+            pdf.text(`  • Lucro/Prejuízo: ${formatCurrency(categoryProfit)}`, 25, yPosition);
+            yPosition += 5;
+            pdf.text(`  • Taxa de vitória: ${categoryWinRate.toFixed(1)}%`, 25, yPosition);
+            yPosition += 5;
+            pdf.text(`  • ROI: ${categoryROI.toFixed(1)}%`, 25, yPosition);
+            yPosition += 10;
           }
-          
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(`${category.icon} ${category.name}:`, 20, yPosition);
-          yPosition += 5;
-          
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`  • Apostas: ${categoryBets.length}`, 25, yPosition);
-          yPosition += 4;
-          pdf.text(`  • Valor apostado: ${formatCurrency(categoryAmount)}`, 25, yPosition);
-          yPosition += 4;
-          pdf.text(`  • Lucro/Prejuízo: ${formatCurrency(categoryProfit)}`, 25, yPosition);
-          yPosition += 4;
-          pdf.text(`  • Taxa de vitória: ${categoryWinRate.toFixed(1)}%`, 25, yPosition);
-          yPosition += 8;
-        }
-      });
+        });
+      }
 
       // Period Analysis
-      if (yPosition > pageHeight - 50) {
+      if (yPosition > pageHeight - 60) {
         pdf.addPage();
         yPosition = 20;
       }
@@ -177,38 +189,45 @@ export const AnalyticsPage: React.FC = () => {
       yPosition += 10;
 
       const periods = [
-        { key: 'morning', label: 'Manhã' },
-        { key: 'afternoon', label: 'Tarde' },
-        { key: 'night', label: 'Noite' },
-        { key: 'late-night', label: 'Madrugada' },
+        { key: 'morning', label: 'Manhã', icon: '🌅' },
+        { key: 'afternoon', label: 'Tarde', icon: '☀️' },
+        { key: 'night', label: 'Noite', icon: '🌙' },
+        { key: 'late-night', label: 'Madrugada', icon: '🌃' },
       ];
 
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
 
+      let hasAnyPeriodData = false;
       periods.forEach(period => {
         const periodBets = filteredBets.filter(bet => bet.period === period.key);
         if (periodBets.length > 0) {
+          hasAnyPeriodData = true;
           const periodProfit = periodBets.reduce((sum, bet) => sum + bet.profit, 0);
           const periodWins = periodBets.filter(bet => bet.result === 'win').length;
           const periodWinRate = (periodWins / periodBets.length) * 100;
           
           pdf.setFont('helvetica', 'bold');
-          pdf.text(`${period.label}:`, 20, yPosition);
-          yPosition += 5;
+          pdf.text(`${period.icon} ${period.label}:`, 20, yPosition);
+          yPosition += 6;
           
           pdf.setFont('helvetica', 'normal');
           pdf.text(`  • Apostas: ${periodBets.length}`, 25, yPosition);
-          yPosition += 4;
+          yPosition += 5;
           pdf.text(`  • Lucro/Prejuízo: ${formatCurrency(periodProfit)}`, 25, yPosition);
-          yPosition += 4;
+          yPosition += 5;
           pdf.text(`  • Taxa de vitória: ${periodWinRate.toFixed(1)}%`, 25, yPosition);
-          yPosition += 8;
+          yPosition += 10;
         }
       });
 
-      // Betting History
-      if (yPosition > pageHeight - 50) {
+      if (!hasAnyPeriodData) {
+        pdf.text('Nenhum dado de período disponível', 20, yPosition);
+        yPosition += 10;
+      }
+
+      // Insights Section
+      if (yPosition > pageHeight - 60) {
         pdf.addPage();
         yPosition = 20;
       }
@@ -216,48 +235,47 @@ export const AnalyticsPage: React.FC = () => {
       yPosition += 10;
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Histórico de Apostas (Últimas 20)', 20, yPosition);
+      pdf.text('Insights e Análises', 20, yPosition);
       yPosition += 10;
 
-      // Table headers
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'bold');
-      const headers = ['Data', 'Categoria', 'Valor', 'Resultado', 'Lucro/Prejuízo'];
-      const colWidths = [25, 40, 25, 25, 30];
-      let xPosition = 20;
-
-      headers.forEach((header, index) => {
-        pdf.text(header, xPosition, yPosition);
-        xPosition += colWidths[index];
-      });
-
-      yPosition += 8;
+      pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
 
-      // Table data - Last 20 bets
-      const recentBets = filteredBets.slice(-20);
-      recentBets.forEach(bet => {
-        if (yPosition > pageHeight - 30) {
-          pdf.addPage();
-          yPosition = 20;
+      // Best performing category
+      let bestCategory = '';
+      let bestCategoryProfit = -Infinity;
+      userCategories.forEach(category => {
+        const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
+        const profit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
+        if (profit > bestCategoryProfit && categoryBets.length > 0) {
+          bestCategoryProfit = profit;
+          bestCategory = category.name;
         }
+      });
 
-        const category = userCategories.find(cat => cat.id === bet.categoryId);
-        xPosition = 20;
+      // Best performing period
+      let bestPeriod = '';
+      let bestPeriodWinRate = 0;
+      periods.forEach(period => {
+        const periodBets = filteredBets.filter(bet => bet.period === period.key);
+        if (periodBets.length > 0) {
+          const winRate = (periodBets.filter(bet => bet.result === 'win').length / periodBets.length) * 100;
+          if (winRate > bestPeriodWinRate) {
+            bestPeriodWinRate = winRate;
+            bestPeriod = period.label;
+          }
+        }
+      });
 
-        const rowData = [
-          format(new Date(bet.date), 'dd/MM/yyyy'),
-          category?.name || 'N/A',
-          formatCurrency(bet.amount),
-          bet.result === 'win' ? 'Vitória' : 'Derrota',
-          formatCurrency(bet.profit),
-        ];
+      const insights = [
+        `• Categoria mais lucrativa: ${bestCategory || 'N/A'} (${formatCurrency(bestCategoryProfit)})`,
+        `• Melhor período: ${bestPeriod || 'N/A'} (${bestPeriodWinRate.toFixed(1)}% de vitórias)`,
+        `• Média de lucro por aposta: ${totalBets > 0 ? formatCurrency(totalProfit / totalBets) : 'R$ 0,00'}`,
+        `• Valor médio por aposta: ${totalBets > 0 ? formatCurrency(totalAmount / totalBets) : 'R$ 0,00'}`,
+      ];
 
-        rowData.forEach((data, index) => {
-          pdf.text(data, xPosition, yPosition);
-          xPosition += colWidths[index];
-        });
-
+      insights.forEach(insight => {
+        pdf.text(insight, 20, yPosition);
         yPosition += 6;
       });
 
@@ -339,7 +357,7 @@ export const AnalyticsPage: React.FC = () => {
             ))}
           </select>
           <button 
-            onClick={exportToPDF}
+            onClick={exportAnalyticsToPDF}
             disabled={exportLoading}
             className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors text-sm"
           >
@@ -348,7 +366,7 @@ export const AnalyticsPage: React.FC = () => {
             ) : (
               <Download className="h-4 w-4 mr-2" />
             )}
-            Exportar PDF
+            Exportar Analytics
           </button>
         </div>
       </div>
@@ -478,7 +496,7 @@ export const AnalyticsPage: React.FC = () => {
                 userCategories.forEach(category => {
                   const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
                   const profit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
-                  if (profit > bestProfit) {
+                  if (profit > bestProfit && categoryBets.length > 0) {
                     bestProfit = profit;
                     bestCategory = category.name;
                   }

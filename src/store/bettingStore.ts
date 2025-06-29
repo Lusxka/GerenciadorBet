@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { BettingCategory, Bet, Goal, UserSettings, DayStatus, Withdrawal } from '../types';
 import { useAdminStore } from './adminStore';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isAfter, endOfToday } from 'date-fns';
 
 interface BettingState {
   categories: BettingCategory[];
@@ -498,10 +498,14 @@ export const useBettingStore = create<BettingState>()(
           let relevantBets: typeof bets = [];
           const goalDate = new Date(goal.period);
 
+          // Check if goal is expired - goals expire at the end of their target date (11:59 PM)
+          let isExpired = false;
+          
           switch (goal.type) {
             case 'daily':
-              // Only check if it's the goal date
-              if (goalDate.toDateString() === today.toDateString()) {
+              // Goal expires after the end of the target day
+              isExpired = isAfter(today, endOfDay(goalDate));
+              if (!isExpired) {
                 relevantBets = bets.filter(bet => 
                   bet.userId === userSettings.userId && 
                   new Date(bet.date).toDateString() === goalDate.toDateString()
@@ -511,7 +515,8 @@ export const useBettingStore = create<BettingState>()(
             case 'weekly':
               const weekStart = startOfWeek(goalDate, { weekStartsOn: 1 });
               const weekEnd = endOfWeek(goalDate, { weekStartsOn: 1 });
-              if (today >= weekStart && today <= weekEnd) {
+              isExpired = isAfter(today, endOfDay(weekEnd));
+              if (!isExpired) {
                 relevantBets = bets.filter(bet => {
                   const betDate = new Date(bet.date);
                   return bet.userId === userSettings.userId && 
@@ -522,7 +527,8 @@ export const useBettingStore = create<BettingState>()(
             case 'monthly':
               const monthStart = startOfMonth(goalDate);
               const monthEnd = endOfMonth(goalDate);
-              if (today >= monthStart && today <= monthEnd) {
+              isExpired = isAfter(today, endOfDay(monthEnd));
+              if (!isExpired) {
                 relevantBets = bets.filter(bet => {
                   const betDate = new Date(bet.date);
                   return bet.userId === userSettings.userId && 
@@ -531,6 +537,9 @@ export const useBettingStore = create<BettingState>()(
               }
               break;
           }
+
+          // Don't update expired goals
+          if (isExpired) return;
 
           const currentValue = relevantBets.reduce((sum, bet) => sum + bet.profit, 0);
           
