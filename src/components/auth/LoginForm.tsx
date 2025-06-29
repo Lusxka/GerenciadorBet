@@ -181,16 +181,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-medium">
-            Contas de demonstração:
-          </p>
-          <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
-            <p><strong>Admin:</strong> admin@sistema.com / admin123</p>
-            <p><strong>Cliente:</strong> cliente@sistema.com / cliente123</p>
-          </div>
-        </div>
-      </div>
+      
     </motion.div>
   );
 };
