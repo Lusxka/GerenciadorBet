@@ -17,12 +17,14 @@ import {
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
 import { InitialBalanceForm } from '../components/settings/InitialBalanceForm';
+import { ExportModal } from '../components/export/ExportModal';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuthStore();
   const { userSettings, updateSettings, resetAllUserData } = useBettingStore();
   const [loading, setLoading] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [formData, setFormData] = useState({
@@ -47,23 +49,6 @@ export const SettingsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleExportData = () => {
-    // This would export user data to JSON
-    const data = {
-      user,
-      settings: userSettings,
-      exportDate: new Date().toISOString(),
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleResetData = () => {
@@ -326,8 +311,8 @@ export const SettingsPage: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <button
-            onClick={handleExportData}
-            className="flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+            onClick={() => setShowExportModal(true)}
+            className="flex items-center justify-center px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm"
           >
             <Download className="h-4 w-4 mr-2" />
             Exportar Dados
@@ -407,6 +392,12 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={showExportModal} 
+        onClose={() => setShowExportModal(false)} 
+      />
     </div>
   );
 };
