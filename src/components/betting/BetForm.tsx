@@ -240,7 +240,6 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
                     type="radio"
                     value={period.value}
                     {...register('period')}
-                    onChange={(e) => setValue('period', e.target.value as any)}
                     className="sr-only"
                   />
                   <div className="flex items-center space-x-2">

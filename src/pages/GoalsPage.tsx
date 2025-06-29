@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Target, Calendar, TrendingUp, CheckCircle, Clock, Filter } from 'lucide-react';
+import { Plus, Target, Calendar, TrendingUp, CheckCircle, Clock, Filter, Trash2 } from 'lucide-react';
 import { GoalForm } from '../components/goals/GoalForm';
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear, startOfDay, endOfDay, isBefore, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const GoalsPage: React.FC = () => {
   const { user } = useAuthStore();
-  const { goals, bets, updateGoal } = useBettingStore();
+  const { goals, bets, updateGoal, deleteGoal } = useBettingStore();
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [dateFilter, setDateFilter] = useState('all');
 
@@ -21,34 +21,49 @@ export const GoalsPage: React.FC = () => {
     userGoals.forEach(goal => {
       let relevantBets: typeof userBets = [];
       const goalDate = new Date(goal.period);
+      const today = new Date();
 
+      // Check if goal is expired (past its target date)
+      let isExpired = false;
+      
       switch (goal.type) {
         case 'daily':
-          relevantBets = userBets.filter(bet => {
-            const betDate = new Date(bet.date);
-            return betDate.toDateString() === goalDate.toDateString();
-          });
+          isExpired = isBefore(goalDate, startOfDay(today)) && !isToday(goalDate);
+          if (!isExpired) {
+            relevantBets = userBets.filter(bet => {
+              const betDate = new Date(bet.date);
+              return betDate.toDateString() === goalDate.toDateString();
+            });
+          }
           break;
         case 'weekly':
           const weekStart = startOfWeek(goalDate, { weekStartsOn: 1 });
           const weekEnd = endOfWeek(goalDate, { weekStartsOn: 1 });
-          relevantBets = userBets.filter(bet => {
-            const betDate = new Date(bet.date);
-            return betDate >= weekStart && betDate <= weekEnd;
-          });
+          isExpired = isBefore(weekEnd, startOfDay(today));
+          if (!isExpired) {
+            relevantBets = userBets.filter(bet => {
+              const betDate = new Date(bet.date);
+              return betDate >= weekStart && betDate <= weekEnd;
+            });
+          }
           break;
         case 'monthly':
           const monthStart = startOfMonth(goalDate);
           const monthEnd = endOfMonth(goalDate);
-          relevantBets = userBets.filter(bet => {
-            const betDate = new Date(bet.date);
-            return betDate >= monthStart && betDate <= monthEnd;
-          });
+          isExpired = isBefore(monthEnd, startOfDay(today));
+          if (!isExpired) {
+            relevantBets = userBets.filter(bet => {
+              const betDate = new Date(bet.date);
+              return betDate >= monthStart && betDate <= monthEnd;
+            });
+          }
           break;
       }
 
       const currentValue = relevantBets.reduce((sum, bet) => sum + bet.profit, 0);
-      const completed = currentValue >= goal.targetValue;
+      
+      // Don't allow completing expired goals
+      const completed = !isExpired && currentValue >= goal.targetValue;
 
       if (goal.currentValue !== currentValue || goal.completed !== completed) {
         updateGoal(goal.id, { currentValue, completed });
@@ -86,6 +101,24 @@ export const GoalsPage: React.FC = () => {
         return format(date, 'MMMM yyyy', { locale: ptBR });
       default:
         return period;
+    }
+  };
+
+  const isGoalExpired = (goal: any) => {
+    const goalDate = new Date(goal.period);
+    const today = new Date();
+    
+    switch (goal.type) {
+      case 'daily':
+        return isBefore(goalDate, startOfDay(today)) && !isToday(goalDate);
+      case 'weekly':
+        const weekEnd = endOfWeek(goalDate, { weekStartsOn: 1 });
+        return isBefore(weekEnd, startOfDay(today));
+      case 'monthly':
+        const monthEnd = endOfMonth(goalDate);
+        return isBefore(monthEnd, startOfDay(today));
+      default:
+        return false;
     }
   };
 
@@ -128,12 +161,19 @@ export const GoalsPage: React.FC = () => {
     });
   };
 
-  const activeGoals = userGoals.filter(goal => !goal.completed);
+  const activeGoals = userGoals.filter(goal => !goal.completed && !isGoalExpired(goal));
+  const expiredGoals = userGoals.filter(goal => !goal.completed && isGoalExpired(goal));
   const completedGoals = getFilteredGoals(userGoals.filter(goal => goal.completed));
 
   const totalGoals = userGoals.length;
   const completedCount = userGoals.filter(goal => goal.completed).length;
   const completionRate = totalGoals > 0 ? (completedCount / totalGoals) * 100 : 0;
+
+  const handleDeleteGoal = (goalId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta meta?')) {
+      deleteGoal(goalId);
+    }
+  };
 
   const stats = [
     {
@@ -243,7 +283,6 @@ export const GoalsPage: React.FC = () => {
           <div className="space-y-4">
             {activeGoals.map((goal, index) => {
               const progress = Math.min((goal.currentValue / goal.targetValue) * 100, 100);
-              const isOverdue = new Date(goal.period) < new Date() && !goal.completed;
               
               return (
                 <motion.div
@@ -255,16 +294,8 @@ export const GoalsPage: React.FC = () => {
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 space-y-2 sm:space-y-0">
                     <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${
-                        isOverdue 
-                          ? 'bg-error-100 dark:bg-error-900/20' 
-                          : 'bg-primary-100 dark:bg-primary-900/20'
-                      }`}>
-                        {isOverdue ? (
-                          <Clock className="h-5 w-5 text-error-600 dark:text-error-400" />
-                        ) : (
-                          <Target className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                        )}
+                      <div className="p-2 rounded-lg bg-primary-100 dark:bg-primary-900/20">
+                        <Target className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                       </div>
                       <div>
                         <h4 className="text-base font-medium text-gray-900 dark:text-white">
@@ -303,12 +334,79 @@ export const GoalsPage: React.FC = () => {
                       style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                   </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Expired Goals */}
+      {expiredGoals.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Metas Expiradas
+          </h3>
+          <div className="space-y-4">
+            {expiredGoals.map((goal, index) => {
+              const progress = Math.min((goal.currentValue / goal.targetValue) * 100, 100);
+              
+              return (
+                <motion.div
+                  key={goal.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="p-4 border border-error-200 dark:border-error-800 bg-error-50 dark:bg-error-900/20 rounded-lg"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 space-y-2 sm:space-y-0">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-lg bg-error-100 dark:bg-error-900/20">
+                        <Clock className="h-5 w-5 text-error-600 dark:text-error-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-medium text-error-900 dark:text-error-100">
+                          Meta {getGoalTypeLabel(goal.type)} (Expirada)
+                        </h4>
+                        <p className="text-sm text-error-700 dark:text-error-300">
+                          {getGoalPeriodLabel(goal.type, goal.period)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-error-900 dark:text-error-100">
+                          {formatCurrency(goal.currentValue)} / {formatCurrency(goal.targetValue)}
+                        </p>
+                        <p className="text-xs text-error-700 dark:text-error-300">
+                          {progress.toFixed(1)}% atingido
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteGoal(goal.id)}
+                        className="p-2 text-error-600 hover:text-error-800 dark:text-error-400 dark:hover:text-error-300 hover:bg-error-100 dark:hover:bg-error-900/30 rounded-lg transition-colors"
+                        title="Excluir meta expirada"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
                   
-                  {isOverdue && (
-                    <p className="text-xs text-error-600 dark:text-error-400 mt-2">
-                      Meta vencida
-                    </p>
-                  )}
+                  <div className="w-full bg-error-200 dark:bg-error-800 rounded-full h-2">
+                    <div 
+                      className="h-2 rounded-full bg-error-500 transition-all duration-500"
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-error-600 dark:text-error-400 mt-2">
+                    Meta expirada - não pode mais ser concluída
+                  </p>
                 </motion.div>
               );
             })}
@@ -321,7 +419,7 @@ export const GoalsPage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.5 }}
           className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">

@@ -10,7 +10,10 @@ import {
   eachDayOfInterval, 
   isSameDay,
   addMonths,
-  subMonths
+  subMonths,
+  isToday,
+  isBefore,
+  startOfDay
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -27,6 +30,11 @@ export const ProgressPage: React.FC = () => {
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const getDayStatus = (date: Date) => {
+    // Only show status for today and past days
+    if (!isToday(date) && !isBefore(date, startOfDay(new Date()))) {
+      return 'neutral';
+    }
+
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayStatus = dayStatuses.find(ds => ds.date === dateStr);
     
@@ -46,6 +54,11 @@ export const ProgressPage: React.FC = () => {
   };
 
   const getDayProfit = (date: Date) => {
+    // Only calculate profit for today and past days
+    if (!isToday(date) && !isBefore(date, startOfDay(new Date()))) {
+      return 0;
+    }
+
     const dayBets = userBets.filter(bet => isSameDay(new Date(bet.date), date));
     const dayWithdrawals = userWithdrawals.filter(w => isSameDay(new Date(w.date), date));
     
@@ -90,31 +103,46 @@ export const ProgressPage: React.FC = () => {
     }).format(value);
   };
 
-  // Calculate monthly stats
+  // Calculate monthly stats - only for past days and today
   const monthlyBets = userBets.filter(bet => {
     const betDate = new Date(bet.date);
-    return betDate >= monthStart && betDate <= monthEnd;
+    return betDate >= monthStart && betDate <= monthEnd && 
+           (isToday(betDate) || isBefore(betDate, startOfDay(new Date())));
   });
 
   const monthlyWithdrawals = userWithdrawals.filter(w => {
     const withdrawalDate = new Date(w.date);
-    return withdrawalDate >= monthStart && withdrawalDate <= monthEnd;
+    return withdrawalDate >= monthStart && withdrawalDate <= monthEnd &&
+           (isToday(withdrawalDate) || isBefore(withdrawalDate, startOfDay(new Date())));
   });
 
   const positiveDays = daysInMonth.filter(day => {
+    if (!isToday(day) && !isBefore(day, startOfDay(new Date()))) return false;
     const status = getDayStatus(day);
     return status === 'positive' || status === 'stop-win';
   }).length;
 
   const negativeDays = daysInMonth.filter(day => {
+    if (!isToday(day) && !isBefore(day, startOfDay(new Date()))) return false;
     const status = getDayStatus(day);
     return status === 'negative' || status === 'stop-loss';
   }).length;
 
-  const neutralDays = daysInMonth.length - positiveDays - negativeDays;
+  const activeDays = daysInMonth.filter(day => 
+    isToday(day) || isBefore(day, startOfDay(new Date()))
+  ).length;
 
-  const stopWinDays = daysInMonth.filter(day => getDayStatus(day) === 'stop-win').length;
-  const stopLossDays = daysInMonth.filter(day => getDayStatus(day) === 'stop-loss').length;
+  const neutralDays = activeDays - positiveDays - negativeDays;
+
+  const stopWinDays = daysInMonth.filter(day => {
+    if (!isToday(day) && !isBefore(day, startOfDay(new Date()))) return false;
+    return getDayStatus(day) === 'stop-win';
+  }).length;
+
+  const stopLossDays = daysInMonth.filter(day => {
+    if (!isToday(day) && !isBefore(day, startOfDay(new Date()))) return false;
+    return getDayStatus(day) === 'stop-loss';
+  }).length;
 
   const monthlyProfit = monthlyBets.reduce((sum, bet) => sum + bet.profit, 0);
   const monthlyWithdrawalsTotal = monthlyWithdrawals.reduce((sum, w) => sum + w.amount, 0);
@@ -128,6 +156,11 @@ export const ProgressPage: React.FC = () => {
     for (let i = 0; i < 30; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(today.getDate() - i);
+      
+      // Only check past days and today
+      if (!isToday(checkDate) && !isBefore(checkDate, startOfDay(new Date()))) {
+        continue;
+      }
       
       const status = getDayStatus(checkDate);
       
@@ -288,7 +321,8 @@ export const ProgressPage: React.FC = () => {
           {daysInMonth.map((day, index) => {
             const status = getDayStatus(day);
             const profit = getDayProfit(day);
-            const isToday = isSameDay(day, new Date());
+            const isTodayDate = isToday(day);
+            const isFutureDate = !isTodayDate && !isBefore(day, startOfDay(new Date()));
             
             return (
               <motion.div
@@ -299,17 +333,27 @@ export const ProgressPage: React.FC = () => {
                 className={`
                   aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-medium cursor-pointer
                   transition-all duration-200 hover:scale-105 relative
-                  ${getStatusColor(status)}
-                  ${isToday ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-800' : ''}
+                  ${isFutureDate 
+                    ? 'bg-gray-100 dark:bg-gray-600 text-gray-400 dark:text-gray-500 opacity-50' 
+                    : getStatusColor(status)
+                  }
+                  ${isTodayDate ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-800' : ''}
                 `}
-                title={`${format(day, 'dd/MM/yyyy', { locale: ptBR })} - ${formatCurrency(profit)}`}
+                title={isFutureDate 
+                  ? `${format(day, 'dd/MM/yyyy', { locale: ptBR })} - Futuro` 
+                  : `${format(day, 'dd/MM/yyyy', { locale: ptBR })} - ${formatCurrency(profit)}`
+                }
               >
                 <span className="text-xs">{format(day, 'd')}</span>
-                <span className="text-xs">{getStatusIcon(status)}</span>
-                {profit !== 0 && (
-                  <span className="text-xs font-bold">
-                    {profit > 0 ? '+' : ''}{Math.abs(profit).toFixed(0)}
-                  </span>
+                {!isFutureDate && (
+                  <>
+                    <span className="text-xs">{getStatusIcon(status)}</span>
+                    {profit !== 0 && (
+                      <span className="text-xs font-bold">
+                        {profit > 0 ? '+' : ''}{Math.abs(profit).toFixed(0)}
+                      </span>
+                    )}
+                  </>
                 )}
               </motion.div>
             );
@@ -338,6 +382,10 @@ export const ProgressPage: React.FC = () => {
             <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
             <span className="text-gray-600 dark:text-gray-400">Sem Atividade</span>
           </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-gray-100 dark:bg-gray-600 rounded opacity-50"></div>
+            <span className="text-gray-600 dark:text-gray-400">Futuro</span>
+          </div>
         </div>
       </motion.div>
 
@@ -361,7 +409,7 @@ export const ProgressPage: React.FC = () => {
               Dias Positivos
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              {((positiveDays / daysInMonth.length) * 100).toFixed(1)}% do mês
+              {activeDays > 0 ? ((positiveDays / activeDays) * 100).toFixed(1) : 0}% dos dias ativos
             </div>
           </div>
           
@@ -373,7 +421,7 @@ export const ProgressPage: React.FC = () => {
               Dias Negativos
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              {((negativeDays / daysInMonth.length) * 100).toFixed(1)}% do mês
+              {activeDays > 0 ? ((negativeDays / activeDays) * 100).toFixed(1) : 0}% dos dias ativos
             </div>
           </div>
           
@@ -385,7 +433,7 @@ export const ProgressPage: React.FC = () => {
               Dias Neutros
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              {((neutralDays / daysInMonth.length) * 100).toFixed(1)}% do mês
+              {activeDays > 0 ? ((neutralDays / activeDays) * 100).toFixed(1) : 0}% dos dias ativos
             </div>
           </div>
 

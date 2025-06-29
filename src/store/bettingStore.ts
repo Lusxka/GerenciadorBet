@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { BettingCategory, Bet, Goal, UserSettings, DayStatus, Withdrawal } from '../types';
 import { useAdminStore } from './adminStore';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 interface BettingState {
   categories: BettingCategory[];
@@ -13,7 +13,7 @@ interface BettingState {
   dayStatuses: DayStatus[];
   notifications: Array<{
     id: string;
-    type: 'stop-win' | 'stop-loss' | 'goal-achieved' | 'daily-goal-achieved';
+    type: 'stop-win' | 'stop-loss' | 'goal-achieved' | 'daily-goal-achieved' | 'weekly-goal-achieved' | 'monthly-goal-achieved';
     title: string;
     message: string;
     timestamp: Date;
@@ -56,6 +56,7 @@ interface BettingState {
   // Calculations
   calculateBalance: () => void;
   checkStopLimits: () => { stopLoss: boolean; stopWin: boolean };
+  checkAllGoals: () => void;
 }
 
 export const useBettingStore = create<BettingState>()(
@@ -171,8 +172,8 @@ export const useBettingStore = create<BettingState>()(
           get().updateDayStatus(dateStr, todayProfit > 0 ? 'positive' : 'negative', todayProfit);
         }
 
-        // Check daily goals after adding bet
-        get().checkDailyGoals();
+        // Check all goals after adding bet
+        get().checkAllGoals();
       },
 
       updateBet: (id, bet) => {
@@ -252,10 +253,22 @@ export const useBettingStore = create<BettingState>()(
               
               // Only add notification if goal was just completed AND it's a real completion (not initialization)
               if (goal.completed && !g.completed && g.currentValue > 0) {
+                const goalTypeMap = {
+                  daily: 'daily-goal-achieved',
+                  weekly: 'weekly-goal-achieved',
+                  monthly: 'monthly-goal-achieved'
+                } as const;
+                
+                const goalTypeLabelMap = {
+                  daily: 'diária',
+                  weekly: 'semanal',
+                  monthly: 'mensal'
+                };
+                
                 get().addNotification({
-                  type: 'goal-achieved',
-                  title: 'Meta Concluída! 🎯',
-                  message: `Parabéns! Você concluiu sua meta ${g.type === 'daily' ? 'diária' : g.type === 'weekly' ? 'semanal' : 'mensal'} de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(g.targetValue)}.`,
+                  type: goalTypeMap[g.type] || 'goal-achieved',
+                  title: `Meta ${goalTypeLabelMap[g.type]} Concluída! 🎯`,
+                  message: `Parabéns! Você concluiu sua meta ${goalTypeLabelMap[g.type]} de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(g.targetValue)}.`,
                 });
               }
               
@@ -340,9 +353,9 @@ export const useBettingStore = create<BettingState>()(
           if (existingIndex >= 0) {
             const updated = [...state.dayStatuses];
             updated[existingIndex] = { 
-              ...updated[existingIndex], 
+              date,
               status, 
-              profit: updated[existingIndex].profit + profit 
+              profit
             };
             return { dayStatuses: updated };
           } else {
@@ -475,48 +488,63 @@ export const useBettingStore = create<BettingState>()(
         };
       },
 
-      checkDailyGoals: () => {
+      checkAllGoals: () => {
         const { userSettings, bets, goals } = get();
         if (!userSettings) return;
 
         const today = new Date();
-        const todayStr = format(today, 'yyyy-MM-dd');
         
-        // Find daily goals for today
-        const dailyGoals = goals.filter(goal => 
-          goal.userId === userSettings.userId && 
-          goal.type === 'daily' && 
-          goal.period === todayStr &&
-          !goal.completed
-        );
+        goals.filter(goal => goal.userId === userSettings.userId && !goal.completed).forEach(goal => {
+          let relevantBets: typeof bets = [];
+          const goalDate = new Date(goal.period);
 
-        dailyGoals.forEach(goal => {
-          // Calculate today's profit
-          const todayBets = bets.filter(bet => 
-            bet.userId === userSettings.userId && 
-            new Date(bet.date).toISOString().split('T')[0] === todayStr
-          );
-          
-          const todayProfit = todayBets.reduce((sum, bet) => sum + bet.profit, 0);
+          switch (goal.type) {
+            case 'daily':
+              // Only check if it's the goal date
+              if (goalDate.toDateString() === today.toDateString()) {
+                relevantBets = bets.filter(bet => 
+                  bet.userId === userSettings.userId && 
+                  new Date(bet.date).toDateString() === goalDate.toDateString()
+                );
+              }
+              break;
+            case 'weekly':
+              const weekStart = startOfWeek(goalDate, { weekStartsOn: 1 });
+              const weekEnd = endOfWeek(goalDate, { weekStartsOn: 1 });
+              if (today >= weekStart && today <= weekEnd) {
+                relevantBets = bets.filter(bet => {
+                  const betDate = new Date(bet.date);
+                  return bet.userId === userSettings.userId && 
+                         betDate >= weekStart && betDate <= weekEnd;
+                });
+              }
+              break;
+            case 'monthly':
+              const monthStart = startOfMonth(goalDate);
+              const monthEnd = endOfMonth(goalDate);
+              if (today >= monthStart && today <= monthEnd) {
+                relevantBets = bets.filter(bet => {
+                  const betDate = new Date(bet.date);
+                  return bet.userId === userSettings.userId && 
+                         betDate >= monthStart && betDate <= monthEnd;
+                });
+              }
+              break;
+          }
+
+          const currentValue = relevantBets.reduce((sum, bet) => sum + bet.profit, 0);
           
           // Check if goal is achieved
-          if (todayProfit >= goal.targetValue) {
+          if (currentValue >= goal.targetValue && goal.currentValue < goal.targetValue) {
             // Update goal as completed
             get().updateGoal(goal.id, { 
-              currentValue: todayProfit, 
+              currentValue, 
               completed: true,
               completedAt: new Date()
             });
-            
-            // Add daily goal notification
-            get().addNotification({
-              type: 'daily-goal-achieved',
-              title: 'Meta Diária Atingida! 🎯',
-              message: `Parabéns! Você atingiu sua meta diária de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(goal.targetValue)} com um lucro de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(todayProfit)}.`,
-            });
-          } else {
+          } else if (currentValue !== goal.currentValue) {
             // Update current value without completing
-            get().updateGoal(goal.id, { currentValue: todayProfit });
+            get().updateGoal(goal.id, { currentValue });
           }
         });
       },

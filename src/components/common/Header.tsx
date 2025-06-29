@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Moon, Sun, User, LogOut, Settings, X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useBettingStore } from '../../store/bettingStore';
@@ -7,6 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const Header: React.FC = () => {
+  const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { userSettings, updateSettings, notifications, markNotificationAsRead, clearNotifications } = useBettingStore();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -30,6 +32,10 @@ export const Header: React.FC = () => {
     markNotificationAsRead(notificationId);
   };
 
+  const handleProfileClick = () => {
+    navigate('/settings');
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'stop-win':
@@ -38,6 +44,8 @@ export const Header: React.FC = () => {
         return '⚠️';
       case 'goal-achieved':
       case 'daily-goal-achieved':
+      case 'weekly-goal-achieved':
+      case 'monthly-goal-achieved':
         return '🎯';
       default:
         return '📢';
@@ -87,8 +95,8 @@ export const Header: React.FC = () => {
             >
               <Bell className="h-4 w-4 md:h-5 md:w-5 text-gray-600 dark:text-gray-400" />
               {unreadNotifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 h-2 w-2 md:h-3 md:w-3 bg-error-500 rounded-full flex items-center justify-center">
-                  <span className="text-xs text-white font-bold hidden md:block">
+                <span className="absolute -top-1 -right-1 h-4 w-4 md:h-5 md:w-5 bg-error-500 rounded-full flex items-center justify-center">
+                  <span className="text-xs text-white font-bold">
                     {unreadNotifications.length > 9 ? '9+' : unreadNotifications.length}
                   </span>
                 </span>
@@ -180,7 +188,11 @@ export const Header: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-1">
-              <button className="p-1.5 md:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <button 
+                onClick={handleProfileClick}
+                className="p-1.5 md:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Configurações"
+              >
                 <User className="h-4 w-4 md:h-5 md:w-5 text-gray-600 dark:text-gray-400" />
               </button>
               
