@@ -36,6 +36,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<BetFormData>({
     resolver: zodResolver(betSchema),
@@ -50,6 +51,7 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
   const amount = watch('amount');
   const multiplier = watch('multiplier');
   const mg = watch('mg');
+  const selectedPeriod = watch('period');
 
   const calculateProfit = () => {
     if (!amount || !multiplier) return 0;
@@ -226,11 +228,19 @@ export const BetForm: React.FC<BetFormProps> = ({ isOpen, onClose }) => {
             </label>
             <div className="grid grid-cols-2 gap-2">
               {periods.map((period) => (
-                <label key={period.value} className="flex items-center p-2.5 md:p-3 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                <label 
+                  key={period.value} 
+                  className={`flex items-center p-2.5 md:p-3 border rounded-lg cursor-pointer transition-colors ${
+                    selectedPeriod === period.value
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                      : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
                   <input
                     type="radio"
                     value={period.value}
                     {...register('period')}
+                    onChange={(e) => setValue('period', e.target.value as any)}
                     className="sr-only"
                   />
                   <div className="flex items-center space-x-2">

@@ -239,8 +239,8 @@ export const useBettingStore = create<BettingState>()(
                 completedAt: goal.completed && !g.completed ? new Date() : g.completedAt 
               };
               
-              // Check if goal was just completed
-              if (goal.completed && !g.completed) {
+              // Only add notification if goal was just completed AND it's a real completion (not initialization)
+              if (goal.completed && !g.completed && g.currentValue > 0) {
                 get().addNotification({
                   type: 'goal-achieved',
                   title: 'Meta Concluída! 🎯',

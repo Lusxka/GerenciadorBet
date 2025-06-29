@@ -48,7 +48,7 @@ export const Header: React.FC = () => {
       <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4">
         <div className="flex items-center space-x-4">
           <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900 dark:text-white truncate">
-            Gestão Financeira
+            Gestão de Apostas
           </h1>
         </div>
 
