@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, TrendingUp, Lock, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useAdminStore } from '../../store/adminStore';
 
 interface LoginFormProps {
   onToggleMode: () => void;
@@ -15,6 +16,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { login } = useAuthStore();
+  const { getSystemStatus } = useAdminStore();
+
+  const systemStatus = getSystemStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +58,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
             Sistema de Gestão Financeira para Apostas
           </p>
         </div>
+
+        {/* System Status Alert */}
+        {systemStatus.maintenanceMode && (
+          <div className="mb-6 p-4 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-warning-600 dark:text-warning-400" />
+              <div>
+                <p className="text-sm font-medium text-warning-800 dark:text-warning-200">
+                  Sistema em Manutenção
+                </p>
+                <p className="text-xs text-warning-700 dark:text-warning-300 mt-1">
+                  Apenas administradores podem acessar
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -152,6 +173,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
               <button
                 onClick={onToggleMode}
                 className="text-primary-600 hover:text-primary-700 font-medium"
+                disabled={systemStatus.maintenanceMode}
               >
                 Cadastre-se
               </button>

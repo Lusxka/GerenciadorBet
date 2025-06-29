@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { BettingCategory, Bet, Goal, UserSettings, DayStatus, Withdrawal } from '../types';
+import { useAdminStore } from './adminStore';
 
 interface BettingState {
   categories: BettingCategory[];
@@ -262,14 +263,18 @@ export const useBettingStore = create<BettingState>()(
       initializeSettings: (userId) => {
         const { userSettings } = get();
         if (!userSettings || userSettings.userId !== userId) {
+          // Get admin default settings
+          const adminStore = useAdminStore.getState();
+          const adminSettings = adminStore.settings;
+          
           set({
             userSettings: {
               userId,
-              initialBalance: 0, // Default to 0 as requested
-              currentBalance: 0,
-              stopLoss: 300,
-              stopWin: 500,
-              notifications: true,
+              initialBalance: adminSettings.defaultInitialBalance,
+              currentBalance: adminSettings.defaultInitialBalance,
+              stopLoss: adminSettings.defaultStopLoss,
+              stopWin: adminSettings.defaultStopWin,
+              notifications: adminSettings.systemNotifications,
               theme: 'light',
             },
           });
@@ -277,6 +282,10 @@ export const useBettingStore = create<BettingState>()(
       },
 
       resetAllUserData: (userId) => {
+        // Get admin default settings
+        const adminStore = useAdminStore.getState();
+        const adminSettings = adminStore.settings;
+        
         set((state) => ({
           // Remove all user data
           categories: state.categories.filter(cat => cat.userId !== userId),
@@ -285,14 +294,14 @@ export const useBettingStore = create<BettingState>()(
           goals: state.goals.filter(goal => goal.userId !== userId),
           dayStatuses: [], // Clear all day statuses
           notifications: [], // Clear all notifications
-          // Reset user settings to default
+          // Reset user settings to admin defaults
           userSettings: {
             userId,
-            initialBalance: 0,
-            currentBalance: 0,
-            stopLoss: 300,
-            stopWin: 500,
-            notifications: true,
+            initialBalance: adminSettings.defaultInitialBalance,
+            currentBalance: adminSettings.defaultInitialBalance,
+            stopLoss: adminSettings.defaultStopLoss,
+            stopWin: adminSettings.defaultStopWin,
+            notifications: adminSettings.systemNotifications,
             theme: state.userSettings?.theme || 'light', // Keep current theme
           },
         }));

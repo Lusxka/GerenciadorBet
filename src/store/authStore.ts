@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '../types';
+import { useAdminStore } from './adminStore';
 
 interface AuthState {
   user: User | null;
@@ -47,8 +48,20 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email: string, password: string) => {
         try {
+          // Check maintenance mode for non-admin users
+          const adminStore = useAdminStore.getState();
+          const systemStatus = adminStore.getSystemStatus();
+          
           const { users } = get();
           const user = users.find(u => u.email === email && u.password === password);
+          
+          // If maintenance mode is on and user is not admin, block login
+          if (systemStatus.maintenanceMode && user?.role !== 'admin') {
+            return { 
+              success: false, 
+              message: adminStore.settings.maintenanceMessage || 'Sistema em manutenção. Tente novamente mais tarde.' 
+            };
+          }
           
           if (user) {
             const { password: _, ...userWithoutPassword } = user;
@@ -80,6 +93,26 @@ export const useAuthStore = create<AuthState>()(
 
       register: async (name: string, email: string, password: string) => {
         try {
+          // Check admin settings
+          const adminStore = useAdminStore.getState();
+          const systemStatus = adminStore.getSystemStatus();
+          
+          // Check if registration is allowed
+          if (!systemStatus.allowRegistration) {
+            return { 
+              success: false, 
+              message: adminStore.settings.registrationMessage || 'Registros temporariamente suspensos.' 
+            };
+          }
+          
+          // Check daily registration limit
+          if (!adminStore.canRegisterToday()) {
+            return { 
+              success: false, 
+              message: `Limite diário de registros atingido (${adminStore.settings.maxUsersPerDay}). Tente novamente amanhã.` 
+            };
+          }
+          
           const { users } = get();
           
           // Validations
@@ -105,7 +138,15 @@ export const useAuthStore = create<AuthState>()(
             return { success: false, message: 'Este email já está em uso' };
           }
 
-          // Create new user
+          // Increment daily registration count
+          if (!adminStore.incrementDailyRegistrations()) {
+            return { 
+              success: false, 
+              message: 'Limite diário de registros atingido. Tente novamente amanhã.' 
+            };
+          }
+
+          // Create new user with admin default settings
           const newUser = {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             email: email.toLowerCase(),

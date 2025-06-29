@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, TrendingUp, Lock, Mail, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useAdminStore } from '../../store/adminStore';
 
 interface RegisterFormProps {
   onToggleMode: () => void;
@@ -17,6 +18,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { register } = useAuthStore();
+  const { getSystemStatus } = useAdminStore();
+
+  const systemStatus = getSystemStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +77,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
     }
   };
 
+  // Check if registration is blocked
+  const registrationBlocked = !systemStatus.allowRegistration;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -93,6 +100,39 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
           </p>
         </div>
 
+        {/* Registration Status Alert */}
+        {registrationBlocked && (
+          <div className="mb-6 p-4 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-error-600 dark:text-error-400" />
+              <div>
+                <p className="text-sm font-medium text-error-800 dark:text-error-200">
+                  Registros Temporariamente Suspensos
+                </p>
+                <p className="text-xs text-error-700 dark:text-error-300 mt-1">
+                  Novos cadastros não estão sendo aceitos no momento
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!registrationBlocked && systemStatus.dailyRegistrationsUsed >= systemStatus.dailyRegistrationsLimit && (
+          <div className="mb-6 p-4 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-warning-600 dark:text-warning-400" />
+              <div>
+                <p className="text-sm font-medium text-warning-800 dark:text-warning-200">
+                  Limite Diário Atingido
+                </p>
+                <p className="text-xs text-warning-700 dark:text-warning-300 mt-1">
+                  {systemStatus.dailyRegistrationsUsed} / {systemStatus.dailyRegistrationsLimit} registros hoje
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -104,10 +144,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={registrationBlocked}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                         placeholder-gray-500 dark:placeholder-gray-400"
+                         placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Seu nome completo"
                 required
               />
@@ -124,10 +165,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={registrationBlocked}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                         placeholder-gray-500 dark:placeholder-gray-400"
+                         placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="seu@email.com"
                 required
               />
@@ -144,17 +186,19 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={registrationBlocked}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                         placeholder-gray-500 dark:placeholder-gray-400"
+                         placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="••••••••"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={registrationBlocked}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -176,10 +220,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={registrationBlocked}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg 
                          focus:ring-2 focus:ring-primary-500 focus:border-transparent
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                         placeholder-gray-500 dark:placeholder-gray-400"
+                         placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="••••••••"
                 required
               />
@@ -224,7 +269,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
 
           <button
             type="submit"
-            disabled={loading || !name || !email || password.length < 6 || password !== confirmPassword}
+            disabled={loading || !name || !email || password.length < 6 || password !== confirmPassword || registrationBlocked}
             className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400
                      text-white py-3 px-4 rounded-lg font-medium
                      transition-colors duration-200 flex items-center justify-center"

@@ -9,39 +9,33 @@ import {
   Save,
   RefreshCw,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Users,
+  Lock
 } from 'lucide-react';
+import { useAdminStore } from '../../store/adminStore';
 
 export const AdminSettingsPage: React.FC = () => {
+  const { settings, updateSettings, resetSettings, getSystemStatus } = useAdminStore();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
-  const [settings, setSettings] = useState({
-    systemName: 'BetFinance',
-    maintenanceMode: false,
-    allowRegistration: true,
-    maxUsersPerDay: 100,
-    defaultStopLoss: 300,
-    defaultStopWin: 500,
-    defaultInitialBalance: 1000,
-    emailNotifications: true,
-    systemNotifications: true,
-    dataRetentionDays: 365,
-    backupFrequency: 'daily',
-    logLevel: 'info',
-  });
+  const [formData, setFormData] = useState(settings);
+
+  const systemStatus = getSystemStatus();
 
   const handleSave = async () => {
     setLoading(true);
     setMessage(null);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      updateSettings(formData);
       setMessage({ type: 'success', text: 'Configurações salvas com sucesso!' });
+      setTimeout(() => setMessage(null), 3000);
     } catch (error) {
+      console.error('Erro ao salvar configurações:', error);
       setMessage({ type: 'error', text: 'Erro ao salvar configurações' });
+      setTimeout(() => setMessage(null), 3000);
     } finally {
       setLoading(false);
     }
@@ -49,21 +43,10 @@ export const AdminSettingsPage: React.FC = () => {
 
   const handleReset = () => {
     if (window.confirm('Tem certeza que deseja restaurar as configurações padrão?')) {
-      setSettings({
-        systemName: 'BetFinance',
-        maintenanceMode: false,
-        allowRegistration: true,
-        maxUsersPerDay: 100,
-        defaultStopLoss: 300,
-        defaultStopWin: 500,
-        defaultInitialBalance: 1000,
-        emailNotifications: true,
-        systemNotifications: true,
-        dataRetentionDays: 365,
-        backupFrequency: 'daily',
-        logLevel: 'info',
-      });
+      resetSettings();
+      setFormData(settings);
       setMessage({ type: 'success', text: 'Configurações restauradas para o padrão' });
+      setTimeout(() => setMessage(null), 3000);
     }
   };
 
@@ -83,8 +66,21 @@ export const AdminSettingsPage: React.FC = () => {
           key: 'maintenanceMode',
           label: 'Modo Manutenção',
           type: 'toggle',
-          description: 'Ativar modo de manutenção (bloqueia acesso de usuários)',
+          description: 'Ativar modo de manutenção (bloqueia acesso de usuários regulares)',
         },
+        {
+          key: 'maintenanceMessage',
+          label: 'Mensagem de Manutenção',
+          type: 'textarea',
+          description: 'Mensagem exibida durante a manutenção',
+        },
+      ],
+    },
+    {
+      title: 'Controle de Registros',
+      icon: Users,
+      color: 'secondary',
+      settings: [
         {
           key: 'allowRegistration',
           label: 'Permitir Registro',
@@ -98,19 +94,25 @@ export const AdminSettingsPage: React.FC = () => {
           description: 'Limite de novos registros por dia',
           min: 1,
         },
+        {
+          key: 'registrationMessage',
+          label: 'Mensagem de Registro Bloqueado',
+          type: 'textarea',
+          description: 'Mensagem exibida quando registros estão bloqueados',
+        },
       ],
     },
     {
-      title: 'Configurações Padrão',
+      title: 'Configurações Padrão para Novos Usuários',
       icon: Shield,
-      color: 'secondary',
+      color: 'accent',
       settings: [
         {
           key: 'defaultInitialBalance',
           label: 'Saldo Inicial Padrão',
           type: 'number',
           description: 'Saldo inicial para novos usuários',
-          min: 1,
+          min: 0,
         },
         {
           key: 'defaultStopLoss',
@@ -131,7 +133,7 @@ export const AdminSettingsPage: React.FC = () => {
     {
       title: 'Notificações',
       icon: Bell,
-      color: 'accent',
+      color: 'warning',
       settings: [
         {
           key: 'emailNotifications',
@@ -143,14 +145,14 @@ export const AdminSettingsPage: React.FC = () => {
           key: 'systemNotifications',
           label: 'Notificações do Sistema',
           type: 'toggle',
-          description: 'Exibir notificações no sistema',
+          description: 'Exibir notificações no sistema para novos usuários',
         },
       ],
     },
     {
       title: 'Sistema e Dados',
       icon: Database,
-      color: 'warning',
+      color: 'error',
       settings: [
         {
           key: 'dataRetentionDays',
@@ -201,7 +203,7 @@ export const AdminSettingsPage: React.FC = () => {
             Configurações do Sistema
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Gerencie configurações globais e preferências do sistema
+            Gerencie configurações globais, modo manutenção e preferências do sistema
           </p>
         </div>
         <div className="flex space-x-3">
@@ -254,6 +256,32 @@ export const AdminSettingsPage: React.FC = () => {
         </motion.div>
       )}
 
+      {/* System Status Alert */}
+      {(formData.maintenanceMode || !formData.allowRegistration) && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg"
+        >
+          <div className="flex items-start space-x-3">
+            <AlertTriangle className="h-5 w-5 text-warning-600 dark:text-warning-400 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-medium text-warning-800 dark:text-warning-200">
+                Atenção: Restrições Ativas
+              </h4>
+              <div className="text-sm text-warning-700 dark:text-warning-300 mt-1 space-y-1">
+                {formData.maintenanceMode && (
+                  <p>• Modo manutenção ativo - usuários regulares não podem acessar o sistema</p>
+                )}
+                {!formData.allowRegistration && (
+                  <p>• Registros bloqueados - novos usuários não podem se cadastrar</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Settings Sections */}
       {settingSections.map((section, sectionIndex) => (
         <motion.div
@@ -274,7 +302,7 @@ export const AdminSettingsPage: React.FC = () => {
 
           <div className="space-y-6">
             {section.settings.map((setting) => (
-              <div key={setting.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+              <div key={setting.key} className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-900 dark:text-white mb-1">
                     {setting.label}
@@ -284,38 +312,52 @@ export const AdminSettingsPage: React.FC = () => {
                   </p>
                 </div>
                 
-                <div className="sm:ml-6">
+                <div className="sm:ml-6 sm:w-64">
                   {setting.type === 'text' && (
                     <input
                       type="text"
-                      value={settings[setting.key as keyof typeof settings] as string}
-                      onChange={(e) => setSettings({
-                        ...settings,
+                      value={formData[setting.key as keyof typeof formData] as string}
+                      onChange={(e) => setFormData({
+                        ...formData,
                         [setting.key]: e.target.value
                       })}
-                      className="w-full sm:w-64 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                                focus:ring-2 focus:ring-primary-500 focus:border-transparent
                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                     />
                   )}
+
+                  {setting.type === 'textarea' && (
+                    <textarea
+                      value={formData[setting.key as keyof typeof formData] as string}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        [setting.key]: e.target.value
+                      })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                               focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                               bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm resize-none"
+                    />
+                  )}
                   
                   {setting.type === 'number' && (
-                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <div className="space-y-2">
                       <input
                         type="number"
-                        value={settings[setting.key as keyof typeof settings] as number}
-                        onChange={(e) => setSettings({
-                          ...settings,
+                        value={formData[setting.key as keyof typeof formData] as number}
+                        onChange={(e) => setFormData({
+                          ...formData,
                           [setting.key]: Number(e.target.value)
                         })}
                         min={setting.min}
-                        className="w-full sm:w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                                  focus:ring-2 focus:ring-primary-500 focus:border-transparent
                                  bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                       />
                       {(setting.key.includes('Balance') || setting.key.includes('Loss') || setting.key.includes('Win')) && (
                         <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {formatCurrency(settings[setting.key as keyof typeof settings] as number)}
+                          {formatCurrency(formData[setting.key as keyof typeof formData] as number)}
                         </span>
                       )}
                     </div>
@@ -323,19 +365,19 @@ export const AdminSettingsPage: React.FC = () => {
                   
                   {setting.type === 'toggle' && (
                     <button
-                      onClick={() => setSettings({
-                        ...settings,
-                        [setting.key]: !settings[setting.key as keyof typeof settings]
+                      onClick={() => setFormData({
+                        ...formData,
+                        [setting.key]: !formData[setting.key as keyof typeof formData]
                       })}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        settings[setting.key as keyof typeof settings] 
+                        formData[setting.key as keyof typeof formData] 
                           ? 'bg-primary-600' 
                           : 'bg-gray-200 dark:bg-gray-700'
                       }`}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          settings[setting.key as keyof typeof settings] ? 'translate-x-6' : 'translate-x-1'
+                          formData[setting.key as keyof typeof formData] ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
                     </button>
@@ -343,12 +385,12 @@ export const AdminSettingsPage: React.FC = () => {
                   
                   {setting.type === 'select' && (
                     <select
-                      value={settings[setting.key as keyof typeof settings] as string}
-                      onChange={(e) => setSettings({
-                        ...settings,
+                      value={formData[setting.key as keyof typeof formData] as string}
+                      onChange={(e) => setFormData({
+                        ...formData,
                         [setting.key]: e.target.value
                       })}
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                                focus:ring-2 focus:ring-primary-500 focus:border-transparent
                                bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                     >
@@ -370,7 +412,7 @@ export const AdminSettingsPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.5 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
         <div className="flex items-center space-x-3 mb-6">
@@ -383,42 +425,74 @@ export const AdminSettingsPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 bg-success-50 dark:bg-success-900/20 rounded-lg">
+          <div className={`p-4 rounded-lg ${
+            systemStatus.isOnline 
+              ? 'bg-success-50 dark:bg-success-900/20' 
+              : 'bg-error-50 dark:bg-error-900/20'
+          }`}>
             <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
-              <span className="text-sm font-medium text-success-900 dark:text-success-100">
-                Sistema Online
+              {systemStatus.isOnline ? (
+                <CheckCircle className="h-5 w-5 text-success-600 dark:text-success-400" />
+              ) : (
+                <Lock className="h-5 w-5 text-error-600 dark:text-error-400" />
+              )}
+              <span className={`text-sm font-medium ${
+                systemStatus.isOnline 
+                  ? 'text-success-900 dark:text-success-100'
+                  : 'text-error-900 dark:text-error-100'
+              }`}>
+                {systemStatus.isOnline ? 'Sistema Online' : 'Modo Manutenção'}
               </span>
             </div>
-            <p className="text-xs text-success-700 dark:text-success-300 mt-1">
-              Funcionando normalmente
+            <p className={`text-xs mt-1 ${
+              systemStatus.isOnline 
+                ? 'text-success-700 dark:text-success-300'
+                : 'text-error-700 dark:text-error-300'
+            }`}>
+              {systemStatus.isOnline ? 'Funcionando normalmente' : 'Acesso restrito'}
             </p>
           </div>
 
-          <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+          <div className={`p-4 rounded-lg ${
+            systemStatus.allowRegistration 
+              ? 'bg-primary-50 dark:bg-primary-900/20' 
+              : 'bg-warning-50 dark:bg-warning-900/20'
+          }`}>
             <div className="flex items-center space-x-2">
-              <Database className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-              <span className="text-sm font-medium text-primary-900 dark:text-primary-100">
-                Banco de Dados
+              <Users className={`h-5 w-5 ${
+                systemStatus.allowRegistration 
+                  ? 'text-primary-600 dark:text-primary-400'
+                  : 'text-warning-600 dark:text-warning-400'
+              }`} />
+              <span className={`text-sm font-medium ${
+                systemStatus.allowRegistration 
+                  ? 'text-primary-900 dark:text-primary-100'
+                  : 'text-warning-900 dark:text-warning-100'
+              }`}>
+                Registros
               </span>
             </div>
-            <p className="text-xs text-primary-700 dark:text-primary-300 mt-1">
-              Conectado e operacional
+            <p className={`text-xs mt-1 ${
+              systemStatus.allowRegistration 
+                ? 'text-primary-700 dark:text-primary-300'
+                : 'text-warning-700 dark:text-warning-300'
+            }`}>
+              {systemStatus.allowRegistration ? 'Permitidos' : 'Bloqueados'}
             </p>
           </div>
-
+          
           <div className="p-4 bg-secondary-50 dark:bg-secondary-900/20 rounded-lg">
             <div className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
+              <Database className="h-5 w-5 text-secondary-600 dark:text-secondary-400" />
               <span className="text-sm font-medium text-secondary-900 dark:text-secondary-100">
-                Segurança
+                Registros Hoje
               </span>
             </div>
             <p className="text-xs text-secondary-700 dark:text-secondary-300 mt-1">
-              Todos os sistemas seguros
+              {systemStatus.dailyRegistrationsUsed} / {systemStatus.dailyRegistrationsLimit}
             </p>
           </div>
-
+          
           <div className="p-4 bg-accent-50 dark:bg-accent-900/20 rounded-lg">
             <div className="flex items-center space-x-2">
               <Bell className="h-5 w-5 text-accent-600 dark:text-accent-400" />
@@ -427,7 +501,7 @@ export const AdminSettingsPage: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-accent-700 dark:text-accent-300 mt-1">
-              Serviço ativo
+              {formData.systemNotifications ? 'Ativas' : 'Desativadas'}
             </p>
           </div>
         </div>
