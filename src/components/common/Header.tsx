@@ -37,6 +37,7 @@ export const Header: React.FC = () => {
       case 'stop-loss':
         return '⚠️';
       case 'goal-achieved':
+      case 'daily-goal-achieved':
         return '🎯';
       default:
         return '📢';

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { BettingCategory, Bet, Goal, UserSettings, DayStatus, Withdrawal } from '../types';
 import { useAdminStore } from './adminStore';
+import { format, startOfDay, endOfDay } from 'date-fns';
 
 interface BettingState {
   categories: BettingCategory[];
@@ -12,7 +13,7 @@ interface BettingState {
   dayStatuses: DayStatus[];
   notifications: Array<{
     id: string;
-    type: 'stop-win' | 'stop-loss' | 'goal-achieved';
+    type: 'stop-win' | 'stop-loss' | 'goal-achieved' | 'daily-goal-achieved';
     title: string;
     message: string;
     timestamp: Date;
@@ -128,9 +129,8 @@ export const useBettingStore = create<BettingState>()(
 
         // Update day status based on bet result only (not withdrawals)
         const dateStr = new Date(bet.date).toISOString().split('T')[0];
-        get().updateDayStatus(dateStr, profit > 0 ? 'positive' : 'negative', profit);
         
-        // Check stop limits and add notifications - but don't update day status here
+        // Check stop limits and add notifications
         const { stopLoss, stopWin } = get().checkStopLimits();
         
         if (stopWin) {
@@ -140,7 +140,7 @@ export const useBettingStore = create<BettingState>()(
             message: `Parabéns! Você atingiu sua meta de ganho de ${userSettings ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(userSettings.stopWin) : 'R$ 0,00'} hoje.`,
           });
           
-          // Update day status for stop-win separately
+          // Update day status for stop-win
           const todayBets = get().bets.filter(b => 
             b.userId === userSettings?.userId && 
             new Date(b.date).toISOString().split('T')[0] === dateStr
@@ -154,14 +154,25 @@ export const useBettingStore = create<BettingState>()(
             message: `Você atingiu seu limite de perda de ${userSettings ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(userSettings.stopLoss) : 'R$ 0,00'} hoje. Considere parar.`,
           });
           
-          // Update day status for stop-loss separately
+          // Update day status for stop-loss
           const todayBets = get().bets.filter(b => 
             b.userId === userSettings?.userId && 
             new Date(b.date).toISOString().split('T')[0] === dateStr
           );
           const todayProfit = todayBets.reduce((sum, b) => sum + b.profit, 0);
           get().updateDayStatus(dateStr, 'stop-loss', todayProfit);
+        } else {
+          // Regular day status update
+          const todayBets = get().bets.filter(b => 
+            b.userId === userSettings?.userId && 
+            new Date(b.date).toISOString().split('T')[0] === dateStr
+          );
+          const todayProfit = todayBets.reduce((sum, b) => sum + b.profit, 0);
+          get().updateDayStatus(dateStr, todayProfit > 0 ? 'positive' : 'negative', todayProfit);
         }
+
+        // Check daily goals after adding bet
+        get().checkDailyGoals();
       },
 
       updateBet: (id, bet) => {
@@ -458,11 +469,56 @@ export const useBettingStore = create<BettingState>()(
         const stopLossReached = todayProfit <= -userSettings.stopLoss;
         const stopWinReached = todayProfit >= userSettings.stopWin;
 
-        // Don't update day status here - let the caller handle it
         return { 
           stopLoss: stopLossReached, 
           stopWin: stopWinReached 
         };
+      },
+
+      checkDailyGoals: () => {
+        const { userSettings, bets, goals } = get();
+        if (!userSettings) return;
+
+        const today = new Date();
+        const todayStr = format(today, 'yyyy-MM-dd');
+        
+        // Find daily goals for today
+        const dailyGoals = goals.filter(goal => 
+          goal.userId === userSettings.userId && 
+          goal.type === 'daily' && 
+          goal.period === todayStr &&
+          !goal.completed
+        );
+
+        dailyGoals.forEach(goal => {
+          // Calculate today's profit
+          const todayBets = bets.filter(bet => 
+            bet.userId === userSettings.userId && 
+            new Date(bet.date).toISOString().split('T')[0] === todayStr
+          );
+          
+          const todayProfit = todayBets.reduce((sum, bet) => sum + bet.profit, 0);
+          
+          // Check if goal is achieved
+          if (todayProfit >= goal.targetValue) {
+            // Update goal as completed
+            get().updateGoal(goal.id, { 
+              currentValue: todayProfit, 
+              completed: true,
+              completedAt: new Date()
+            });
+            
+            // Add daily goal notification
+            get().addNotification({
+              type: 'daily-goal-achieved',
+              title: 'Meta Diária Atingida! 🎯',
+              message: `Parabéns! Você atingiu sua meta diária de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(goal.targetValue)} com um lucro de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(todayProfit)}.`,
+            });
+          } else {
+            // Update current value without completing
+            get().updateGoal(goal.id, { currentValue: todayProfit });
+          }
+        });
       },
     }),
     {

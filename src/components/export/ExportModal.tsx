@@ -105,9 +105,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
       yPosition += 8;
       pdf.setFont('helvetica', 'normal');
 
-      // Table data
-      const recentBets = userBets.slice(-20); // Last 20 bets
-      recentBets.forEach(bet => {
+      // Table data - Show all bets
+      userBets.forEach(bet => {
         if (yPosition > pageHeight - 30) {
           pdf.addPage();
           yPosition = 20;
@@ -130,6 +129,40 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
         });
 
         yPosition += 6;
+      });
+
+      // Add new page for charts if needed
+      if (yPosition > pageHeight - 100) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      yPosition += 15;
+
+      // Charts section
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Gráficos e Análises', 20, yPosition);
+      yPosition += 10;
+
+      // Category analysis
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Análise por Categoria:', 20, yPosition);
+      yPosition += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+
+      userCategories.forEach(category => {
+        const categoryBets = userBets.filter(bet => bet.categoryId === category.id);
+        if (categoryBets.length > 0) {
+          const categoryProfit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
+          const categoryWinRate = (categoryBets.filter(bet => bet.result === 'win').length / categoryBets.length) * 100;
+          
+          pdf.text(`• ${category.name}: ${categoryBets.length} apostas, ${formatCurrency(categoryProfit)}, ${categoryWinRate.toFixed(1)}% vitórias`, 25, yPosition);
+          yPosition += 5;
+        }
       });
 
       // Save PDF
@@ -215,14 +248,31 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
         ['Taxa de Vitória', winRate.toFixed(1) + '%'],
         ['Total de Apostas', userBets.length.toString()],
         ['', ''],
-        ['HISTÓRICO DE APOSTAS', ''],
-        ...headers.map(h => [h]),
-        ...csvData,
-        ['', ''],
-        ['HISTÓRICO DE SAQUES', ''],
-        ...withdrawalHeaders.map(h => [h]),
-        ...withdrawalData
+        ['ANÁLISE POR CATEGORIA', ''],
       ];
+
+      // Add category analysis
+      userCategories.forEach(category => {
+        const categoryBets = userBets.filter(bet => bet.categoryId === category.id);
+        if (categoryBets.length > 0) {
+          const categoryProfit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
+          const categoryWinRate = (categoryBets.filter(bet => bet.result === 'win').length / categoryBets.length) * 100;
+          
+          summaryData.push([
+            category.name,
+            `${categoryBets.length} apostas, ${formatCurrency(categoryProfit)}, ${categoryWinRate.toFixed(1)}% vitórias`
+          ]);
+        }
+      });
+
+      summaryData.push(['', '']);
+      summaryData.push(['HISTÓRICO DE APOSTAS', '']);
+      summaryData.push(headers);
+      summaryData.push(...csvData);
+      summaryData.push(['', '']);
+      summaryData.push(['HISTÓRICO DE SAQUES', '']);
+      summaryData.push(withdrawalHeaders);
+      summaryData.push(...withdrawalData);
 
       // Convert to CSV
       const csvContent = summaryData
@@ -300,7 +350,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">PDF</div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Relatório formatado com resumo e histórico
+                    Relatório formatado com resumo, histórico e análises
                   </div>
                 </div>
               </label>
@@ -321,7 +371,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
                 <div>
                   <div className="font-medium text-gray-900 dark:text-white">Excel (CSV)</div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Dados estruturados para análise
+                    Dados estruturados para análise detalhada
                   </div>
                 </div>
               </label>
@@ -344,6 +394,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
               <li className="flex items-center">
                 <Download className="h-4 w-4 mr-2" />
                 Histórico de saques
+              </li>
+              <li className="flex items-center">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Análises por categoria
               </li>
             </ul>
           </div>
