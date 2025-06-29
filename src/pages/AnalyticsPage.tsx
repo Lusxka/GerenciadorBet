@@ -13,11 +13,15 @@ import { CategoryChart } from '../components/analytics/CategoryChart';
 import { PeriodChart } from '../components/analytics/PeriodChart';
 import { useBettingStore } from '../store/bettingStore';
 import { useAuthStore } from '../store/authStore';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
 
 export const AnalyticsPage: React.FC = () => {
   const { user } = useAuthStore();
   const { bets, withdrawals, categories } = useBettingStore();
   const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [exportLoading, setExportLoading] = useState(false);
 
   const userBets = bets.filter(bet => bet.userId === user?.id);
   const userWithdrawals = withdrawals.filter(w => w.userId === user?.id);
@@ -68,6 +72,203 @@ export const AnalyticsPage: React.FC = () => {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+  };
+
+  const exportToPDF = async () => {
+    setExportLoading(true);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let yPosition = 20;
+
+      // Header
+      pdf.setFontSize(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Relatório de Analytics', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 10;
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Usuário: ${user?.name}`, pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 5;
+      pdf.text(`Período: ${selectedPeriod === 'all' ? 'Todos' : selectedPeriod === 'today' ? 'Hoje' : selectedPeriod === 'week' ? '7 dias' : '30 dias'}`, pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 5;
+      pdf.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 15;
+
+      // Summary Statistics
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Resumo Estatístico', 20, yPosition);
+      yPosition += 10;
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      
+      const summaryData = [
+        `Total de Apostas: ${totalBets}`,
+        `Vitórias: ${totalWins} | Derrotas: ${totalLosses}`,
+        `Taxa de Vitória: ${winRate.toFixed(1)}%`,
+        `Total Apostado: ${formatCurrency(totalAmount)}`,
+        `Lucro/Prejuízo: ${formatCurrency(totalProfit)}`,
+        `ROI: ${roi.toFixed(1)}%`,
+        `Total Saques: ${formatCurrency(totalWithdrawals)}`,
+      ];
+
+      summaryData.forEach(line => {
+        pdf.text(line, 20, yPosition);
+        yPosition += 6;
+      });
+
+      yPosition += 10;
+
+      // Category Analysis
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Análise por Categoria', 20, yPosition);
+      yPosition += 10;
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+
+      userCategories.forEach(category => {
+        const categoryBets = filteredBets.filter(bet => bet.categoryId === category.id);
+        if (categoryBets.length > 0) {
+          const categoryProfit = categoryBets.reduce((sum, bet) => sum + bet.profit, 0);
+          const categoryAmount = categoryBets.reduce((sum, bet) => sum + bet.amount, 0);
+          const categoryWins = categoryBets.filter(bet => bet.result === 'win').length;
+          const categoryWinRate = (categoryWins / categoryBets.length) * 100;
+          
+          if (yPosition > pageHeight - 30) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+          
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${category.icon} ${category.name}:`, 20, yPosition);
+          yPosition += 5;
+          
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(`  • Apostas: ${categoryBets.length}`, 25, yPosition);
+          yPosition += 4;
+          pdf.text(`  • Valor apostado: ${formatCurrency(categoryAmount)}`, 25, yPosition);
+          yPosition += 4;
+          pdf.text(`  • Lucro/Prejuízo: ${formatCurrency(categoryProfit)}`, 25, yPosition);
+          yPosition += 4;
+          pdf.text(`  • Taxa de vitória: ${categoryWinRate.toFixed(1)}%`, 25, yPosition);
+          yPosition += 8;
+        }
+      });
+
+      // Period Analysis
+      if (yPosition > pageHeight - 50) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      yPosition += 10;
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Análise por Período do Dia', 20, yPosition);
+      yPosition += 10;
+
+      const periods = [
+        { key: 'morning', label: 'Manhã' },
+        { key: 'afternoon', label: 'Tarde' },
+        { key: 'night', label: 'Noite' },
+        { key: 'late-night', label: 'Madrugada' },
+      ];
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+
+      periods.forEach(period => {
+        const periodBets = filteredBets.filter(bet => bet.period === period.key);
+        if (periodBets.length > 0) {
+          const periodProfit = periodBets.reduce((sum, bet) => sum + bet.profit, 0);
+          const periodWins = periodBets.filter(bet => bet.result === 'win').length;
+          const periodWinRate = (periodWins / periodBets.length) * 100;
+          
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${period.label}:`, 20, yPosition);
+          yPosition += 5;
+          
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(`  • Apostas: ${periodBets.length}`, 25, yPosition);
+          yPosition += 4;
+          pdf.text(`  • Lucro/Prejuízo: ${formatCurrency(periodProfit)}`, 25, yPosition);
+          yPosition += 4;
+          pdf.text(`  • Taxa de vitória: ${periodWinRate.toFixed(1)}%`, 25, yPosition);
+          yPosition += 8;
+        }
+      });
+
+      // Betting History
+      if (yPosition > pageHeight - 50) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      yPosition += 10;
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Histórico de Apostas (Últimas 20)', 20, yPosition);
+      yPosition += 10;
+
+      // Table headers
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      const headers = ['Data', 'Categoria', 'Valor', 'Resultado', 'Lucro/Prejuízo'];
+      const colWidths = [25, 40, 25, 25, 30];
+      let xPosition = 20;
+
+      headers.forEach((header, index) => {
+        pdf.text(header, xPosition, yPosition);
+        xPosition += colWidths[index];
+      });
+
+      yPosition += 8;
+      pdf.setFont('helvetica', 'normal');
+
+      // Table data - Last 20 bets
+      const recentBets = filteredBets.slice(-20);
+      recentBets.forEach(bet => {
+        if (yPosition > pageHeight - 30) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        const category = userCategories.find(cat => cat.id === bet.categoryId);
+        xPosition = 20;
+
+        const rowData = [
+          format(new Date(bet.date), 'dd/MM/yyyy'),
+          category?.name || 'N/A',
+          formatCurrency(bet.amount),
+          bet.result === 'win' ? 'Vitória' : 'Derrota',
+          formatCurrency(bet.profit),
+        ];
+
+        rowData.forEach((data, index) => {
+          pdf.text(data, xPosition, yPosition);
+          xPosition += colWidths[index];
+        });
+
+        yPosition += 6;
+      });
+
+      // Save PDF
+      pdf.save(`analytics_${selectedPeriod}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao gerar PDF. Tente novamente.');
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const stats = [
@@ -137,9 +338,17 @@ export const AnalyticsPage: React.FC = () => {
               </option>
             ))}
           </select>
-          <button className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors text-sm">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
+          <button 
+            onClick={exportToPDF}
+            disabled={exportLoading}
+            className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white rounded-lg transition-colors text-sm"
+          >
+            {exportLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Exportar PDF
           </button>
         </div>
       </div>
